@@ -43,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->replaceInGroup('web', BaseEncryptCookies::class, EncryptCookies::class);
     })
     ->withSchedule(function (Schedule $schedule) {
-        //
+        $schedule->command('omniva:sync-locations')->dailyAt('03:00');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

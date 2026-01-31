@@ -22,17 +22,25 @@ class Everypay extends Payment
         $apiSecret = (string) core()->getConfigData('sales.payment_methods.everypay.api_secret', $requestedChannelCode);
         $accountName = (string) core()->getConfigData('sales.payment_methods.everypay.account_name', $requestedChannelCode);
 
+        $sandbox = (bool) core()->getConfigData('sales.payment_methods.everypay.sandbox', $requestedChannelCode);
+        $customerUrl = (string) core()->getConfigData('sales.payment_methods.everypay.customer_url', $requestedChannelCode);
+
         if (! $apiUsername || ! $apiSecret || ! $accountName) {
             $apiUsername = $apiUsername ?: (string) core()->getConfigData('sales.payment_methods.everypay.api_username', $defaultChannelCode);
             $apiSecret = $apiSecret ?: (string) core()->getConfigData('sales.payment_methods.everypay.api_secret', $defaultChannelCode);
             $accountName = $accountName ?: (string) core()->getConfigData('sales.payment_methods.everypay.account_name', $defaultChannelCode);
         }
 
+        if (! $sandbox || ! $customerUrl) {
+            $sandbox = $sandbox ?: (bool) core()->getConfigData('sales.payment_methods.everypay.sandbox', $defaultChannelCode);
+            $customerUrl = $customerUrl ?: (string) core()->getConfigData('sales.payment_methods.everypay.customer_url', $defaultChannelCode);
+        }
+
         if (! $apiUsername || ! $apiSecret || ! $accountName) {
             throw new \Exception('Everypay is not configured');
         }
 
-        $baseUrl = $this->getConfigData('sandbox') ? 'https://igw-demo.every-pay.com' : 'https://igw.every-pay.com';
+        $baseUrl = $sandbox ? 'https://igw-demo.every-pay.com' : 'https://igw.every-pay.com';
 
         $orderReference = $this->makeOrderReference($cart->id);
         $nonce = (string) Str::uuid();
@@ -40,7 +48,6 @@ class Everypay extends Payment
 
         $amount = round((float) $cart->grand_total, 2);
 
-        $customerUrl = (string) $this->getConfigData('customer_url');
         if (! $customerUrl) {
             $customerUrl = config('app.url');
         }
