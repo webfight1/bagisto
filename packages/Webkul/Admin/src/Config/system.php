@@ -1813,7 +1813,7 @@ return [
                 'title'         => 'Rate',
                 'type'          => 'text',
                 'depends'       => 'active:1',
-                'validation'    => 'required_if:active,1|numeric',
+                'validation'    => 'required_if:active,1|decimal',
                 'channel_based' => true,
                 'locale_based'  => false,
             ], [
