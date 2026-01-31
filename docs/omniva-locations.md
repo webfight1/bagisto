@@ -57,3 +57,14 @@ Lisa serveris crontab’i (tee kohanda vastavalt päris `artisan` path’ile):
 - Kood ja migrationid tulevad gitiga.
 - Cron on serveri seadistus ja ei tule repo kaudu.
 - Hetkel salvestame ainult EE pakiautomaadid (postipunkte `TYPE=1` ei lisa).
+
+## Järgmised sammud (shipping method kliendi jaoks)
+Praegu on tehtud ainult pakiautomaatide asukohtade kiirem kättesaamine (DB + API). Selleks, et kliendil oleks checkoutis eraldi Omniva shipping method valik, on vaja lisada Bagistos Omniva shipping carrier.
+
+Planeeritud järgmised tööd:
+- Lisada Bagisto shipping carrier `omniva` (fikseeritud hind `2.99`).
+- Lisada haldusesse seadistused `Sales -> Shipping Methods` alla (`active`, `title`, `rate`).
+- Muuta headless checkouti flow nii, et WP:
+  - loeb asukohad `GET /api/v1/omniva/locations`
+  - valib Bagisto shipping methodi (`/api/v1/guest/checkout/shipping-method`)
+  - salvestab valitud pakiautomaadi (pickup-point) cart/order andmetesse.

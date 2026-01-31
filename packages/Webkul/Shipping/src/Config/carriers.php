@@ -19,4 +19,13 @@ return [
         'default_rate' => '0',
         'class'        => 'Webkul\Shipping\Carriers\Free',
     ],
+
+    'omniva' => [
+        'code'         => 'omniva',
+        'title'        => 'Omniva',
+        'description'  => 'Omniva parcel locker',
+        'active'       => true,
+        'default_rate' => '2.99',
+        'class'        => 'Webkul\Shipping\Carriers\Omniva',
+    ],
 ];

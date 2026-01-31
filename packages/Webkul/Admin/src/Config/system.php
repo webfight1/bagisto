@@ -1789,6 +1789,42 @@ return [
             ],
         ],
     ], [
+        'key'    => 'sales.carriers.omniva',
+        'name'   => 'Omniva',
+        'info'   => 'Omniva parcel locker shipping',
+        'sort'   => 3,
+        'fields' => [
+            [
+                'name'          => 'title',
+                'title'         => 'Title',
+                'type'          => 'text',
+                'depends'       => 'active:1',
+                'validation'    => 'required_if:active,1',
+                'channel_based' => true,
+                'locale_based'  => true,
+            ], [
+                'name'          => 'description',
+                'title'         => 'Description',
+                'type'          => 'textarea',
+                'channel_based' => true,
+                'locale_based'  => true,
+            ], [
+                'name'          => 'default_rate',
+                'title'         => 'Rate',
+                'type'          => 'text',
+                'depends'       => 'active:1',
+                'validation'    => 'required_if:active,1|numeric',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'          => 'active',
+                'title'         => 'Status',
+                'type'          => 'boolean',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ],
+        ],
+    ], [
         'key'  => 'sales.payment_methods',
         'name' => 'admin::app.configuration.index.sales.payment-methods.page-title',
         'info' => 'admin::app.configuration.index.sales.payment-methods.info',
