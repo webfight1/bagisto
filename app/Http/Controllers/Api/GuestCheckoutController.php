@@ -267,6 +267,38 @@ class GuestCheckoutController extends Controller
         ]);
     }
 
+    public function paymentStatus(Request $request): JsonResource
+    {
+        $cart = $this->getCartFromToken($request);
+
+        if (! $cart) {
+            return new JsonResource([
+                'data' => [
+                    'status'   => 'missing_cart',
+                    'order_id' => null,
+                ],
+            ]);
+        }
+
+        $order = $this->orderRepository->findOneWhere(['cart_id' => $cart->id]);
+
+        if (! $order) {
+            return new JsonResource([
+                'data' => [
+                    'status'   => 'pending',
+                    'order_id' => null,
+                ],
+            ]);
+        }
+
+        return new JsonResource([
+            'data' => [
+                'status'   => 'paid',
+                'order_id' => $order->id,
+            ],
+        ]);
+    }
+
     protected function validateOrder(): void
     {
         $cart = Cart::getCart();

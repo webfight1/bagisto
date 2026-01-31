@@ -41,6 +41,7 @@ Route::prefix('v1/guest')->group(function () {
         Route::post('/shipping-method', [GuestCheckoutController::class, 'storeShippingMethod']);
         Route::get('/payment-methods', [GuestCheckoutController::class, 'paymentMethods']);
         Route::post('/payment-method', [GuestCheckoutController::class, 'storePaymentMethod']);
+        Route::get('/payment-status', [GuestCheckoutController::class, 'paymentStatus']);
         Route::post('/place-order', [GuestCheckoutController::class, 'placeOrder']);
     });
 });
