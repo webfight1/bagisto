@@ -72,7 +72,7 @@ class SyncOmnivaLocations extends Command
                 'lng' => isset($row['X_COORDINATE']) ? (float) $row['X_COORDINATE'] : null,
                 'lat' => isset($row['Y_COORDINATE']) ? (float) $row['Y_COORDINATE'] : null,
                 'source_modified_at' => isset($row['MODIFIED']) ? $row['MODIFIED'] : null,
-                'raw' => $row,
+                'raw' => json_encode($row, JSON_UNESCAPED_UNICODE),
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
