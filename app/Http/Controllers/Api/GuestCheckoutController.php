@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
@@ -22,7 +23,7 @@ class GuestCheckoutController extends Controller
         protected OrderRepository $orderRepository,
     ) {}
 
-    public function storeAddresses(Request $request): JsonResource
+    public function storeAddresses(Request $request): JsonResponse|JsonResource
     {
         $cart = $this->requireCartFromToken($request);
         Cart::setCart($cart);
@@ -123,7 +124,7 @@ class GuestCheckoutController extends Controller
         ]);
     }
 
-    public function shippingMethods(Request $request): JsonResource
+    public function shippingMethods(Request $request): JsonResponse|JsonResource
     {
         $cart = $this->requireCartFromToken($request);
         Cart::setCart($cart);
@@ -153,7 +154,7 @@ class GuestCheckoutController extends Controller
         ]);
     }
 
-    public function storeShippingMethod(Request $request): JsonResource
+    public function storeShippingMethod(Request $request): JsonResponse|JsonResource
     {
         $cart = $this->requireCartFromToken($request);
         Cart::setCart($cart);
@@ -178,7 +179,7 @@ class GuestCheckoutController extends Controller
         ]);
     }
 
-    public function paymentMethods(Request $request): JsonResource
+    public function paymentMethods(Request $request): JsonResponse|JsonResource
     {
         $cart = $this->requireCartFromToken($request);
         Cart::setCart($cart);
@@ -196,7 +197,7 @@ class GuestCheckoutController extends Controller
         ]);
     }
 
-    public function storePaymentMethod(Request $request): JsonResource
+    public function storePaymentMethod(Request $request): JsonResponse|JsonResource
     {
         $cart = $this->requireCartFromToken($request);
         Cart::setCart($cart);
@@ -221,7 +222,7 @@ class GuestCheckoutController extends Controller
         ]);
     }
 
-    public function placeOrder(Request $request): JsonResource
+    public function placeOrder(Request $request): JsonResponse|JsonResource
     {
         $cart = $this->requireCartFromToken($request);
         Cart::setCart($cart);
