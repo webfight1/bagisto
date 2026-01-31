@@ -15,9 +15,18 @@ class Everypay extends Payment
     {
         $cart = $this->getCart();
 
-        $apiUsername = (string) $this->getConfigData('api_username');
-        $apiSecret = (string) $this->getConfigData('api_secret');
-        $accountName = (string) $this->getConfigData('account_name');
+        $requestedChannelCode = core()->getRequestedChannelCode();
+        $defaultChannelCode = core()->getDefaultChannelCode();
+
+        $apiUsername = (string) core()->getConfigData('sales.payment_methods.everypay.api_username', $requestedChannelCode);
+        $apiSecret = (string) core()->getConfigData('sales.payment_methods.everypay.api_secret', $requestedChannelCode);
+        $accountName = (string) core()->getConfigData('sales.payment_methods.everypay.account_name', $requestedChannelCode);
+
+        if (! $apiUsername || ! $apiSecret || ! $accountName) {
+            $apiUsername = $apiUsername ?: (string) core()->getConfigData('sales.payment_methods.everypay.api_username', $defaultChannelCode);
+            $apiSecret = $apiSecret ?: (string) core()->getConfigData('sales.payment_methods.everypay.api_secret', $defaultChannelCode);
+            $accountName = $accountName ?: (string) core()->getConfigData('sales.payment_methods.everypay.account_name', $defaultChannelCode);
+        }
 
         if (! $apiUsername || ! $apiSecret || ! $accountName) {
             throw new \Exception('Everypay is not configured');
