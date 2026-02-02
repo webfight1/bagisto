@@ -13,12 +13,16 @@ class ProductPopularityController extends Controller
     {
         $minQty = (int) $minQty;
 
-        $popularProductIds = DB::table('order_items')
-            ->select('product_id', DB::raw('SUM(qty_ordered) as total_qty'))
-            ->groupBy('product_id')
+        $popularProductTotals = DB::table('order_items')
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->select(DB::raw('COALESCE(products.parent_id, products.id) as popular_product_id'), DB::raw('SUM(order_items.qty_ordered) as total_qty'))
+            ->groupBy('popular_product_id')
             ->having('total_qty', '>=', $minQty)
-            ->pluck('product_id')
+            ->pluck('total_qty', 'popular_product_id')
+            ->map(fn ($qty) => (int) $qty)
             ->toArray();
+
+        $popularProductIds = array_keys($popularProductTotals);
 
         if (empty($popularProductIds)) {
             return response()->json([]);
@@ -50,13 +54,14 @@ class ProductPopularityController extends Controller
                 'product_images.path'
             )
             ->get()
-            ->map(function ($product) {
+            ->map(function ($product) use ($popularProductTotals) {
                 return [
                     'id'                => $product->id,
                     'sku'               => $product->sku,
                     'name'              => $product->name,
                     'short_description' => $product->short_description,
                     'price'             => $product->price,
+                    'total_qty'         => $popularProductTotals[$product->product_id] ?? 0,
                     'image_url'         => $product->image_path
                         ? url('storage/' . $product->image_path)
                         : null,

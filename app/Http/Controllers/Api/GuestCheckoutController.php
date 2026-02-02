@@ -159,9 +159,37 @@ class GuestCheckoutController extends Controller
         $cart = $this->requireCartFromToken($request);
         Cart::setCart($cart);
 
+        if (Cart::hasError()) {
+            return (new JsonResource([
+                'message' => Cart::getErrors()['message'] ?? 'Cart has errors',
+            ]))->response()->setStatusCode(Response::HTTP_BAD_REQUEST);
+        }
+
         $validated = $request->validate([
             'shipping_method' => ['required'],
         ]);
+
+        Cart::collectTotals();
+
+        $cart = Cart::getCart();
+
+        if ($cart?->haveStockableItems() && ! $cart->shipping_address) {
+            return (new JsonResource([
+                'message' => 'Shipping address is required before selecting shipping method',
+            ]))->response()->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if ($cart?->haveStockableItems() && ! Shipping::collectRates()) {
+            return (new JsonResource([
+                'message' => 'Unable to collect shipping rates',
+            ]))->response()->setStatusCode(Response::HTTP_BAD_REQUEST);
+        }
+
+        if (! Shipping::isMethodCodeExists($validated['shipping_method'])) {
+            return (new JsonResource([
+                'message' => 'Shipping method is not available for this cart',
+            ]))->response()->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         if (Cart::hasError() || ! Cart::saveShippingMethod($validated['shipping_method'])) {
             return (new JsonResource([
