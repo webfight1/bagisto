@@ -7,6 +7,7 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use App\Http\Middleware\DisableStorefront;
 use Webkul\Core\Http\Middleware\PreventRequestsDuringMaintenance;
 use Webkul\Shop\Http\Middleware\AuthenticateCustomer;
 use Webkul\Shop\Http\Middleware\CacheResponse;
@@ -41,7 +42,7 @@ class ShopServiceProvider extends ServiceProvider
         $router->aliasMiddleware('cache.response', CacheResponse::class);
         $router->aliasMiddleware('customer', AuthenticateCustomer::class);
 
-        Route::middleware(['web', 'shop', PreventRequestsDuringMaintenance::class])->group(__DIR__.'/../Routes/web.php');
+        Route::middleware(['web', 'shop', PreventRequestsDuringMaintenance::class, DisableStorefront::class])->group(__DIR__.'/../Routes/web.php');
         Route::middleware(['web', 'shop', PreventRequestsDuringMaintenance::class])->group(__DIR__.'/../Routes/api.php');
 
         $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
