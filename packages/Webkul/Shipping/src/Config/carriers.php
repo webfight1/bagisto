@@ -28,4 +28,12 @@ return [
         'default_rate' => '2.99',
         'class'        => 'Webkul\Shipping\Carriers\Omniva',
     ],
+    'smartpost' => [
+        'code'         => 'smartpost',
+        'title'        => 'Itella Smartpost',
+        'description'  => 'Itella Smartpost parcel locker',
+        'active'       => true,
+        'default_rate' => '2.99',
+        'class'        => 'Webkul\Shipping\Carriers\Smartpost',
+    ],
 ];

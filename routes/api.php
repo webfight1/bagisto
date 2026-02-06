@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CategoryProductController;
 use App\Http\Controllers\Api\GuestCartController;
 use App\Http\Controllers\Api\GuestCheckoutController;
 use App\Http\Controllers\Api\OmnivaController;
+use App\Http\Controllers\Api\SmartpostController;
 use App\Http\Controllers\Api\SingleProductController;
 use App\Http\Controllers\Api\ProductPopularityController;
 use Webkul\Shop\Http\Controllers\API\ProductController;
@@ -57,6 +58,7 @@ Route::get('/v1/catalog/price-range', [ProductController::class, 'priceRange']);
 Route::get('/v1/products/{id}/reviews', [ReviewController::class, 'index']);
 
 Route::get('/v1/omniva/locations', [OmnivaController::class, 'locations']);
+Route::get('/v1/smartpost/locations', [SmartpostController::class, 'locations']);
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/products/{id}/review', [ReviewController::class, 'store']);

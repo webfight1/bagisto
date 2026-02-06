@@ -44,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->command('omniva:sync-locations')->dailyAt('03:00');
+        $schedule->command('smartpost:sync-locations')->dailyAt('03:15');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
