@@ -413,6 +413,8 @@ class Cart
      */
     public function saveAddresses(array $params): void
     {
+        \Log::info('Cart::saveAddresses called', ['params' => $params]);
+        
         $this->updateOrCreateBillingAddress($params['billing']);
 
         $this->updateOrCreateShippingAddress($params['shipping'] ?? []);
@@ -469,6 +471,8 @@ class Cart
      */
     public function updateOrCreateShippingAddress(array $params): ?CartAddressContract
     {
+        \Log::info('updateOrCreateShippingAddress called', ['params' => $params]);
+        
         /**
          * If cart is not having any stockable items then no need to save shipping address.
          */
@@ -492,6 +496,7 @@ class Cart
             'city',
             'postcode',
             'phone',
+            'additional',
         ];
 
         if ($this->cart->billing_address->use_for_shipping) {
@@ -519,6 +524,8 @@ class Cart
                 ])
                 ->toArray();
         }
+        
+        \Log::info('Shipping address params after processing', ['params' => $params]);
 
         if ($this->cart->shipping_address) {
             $address = $this->cartAddressRepository->update($params, $this->cart->shipping_address->id);

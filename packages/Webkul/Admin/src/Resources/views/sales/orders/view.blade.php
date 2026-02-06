@@ -622,6 +622,29 @@
 
                             @include ('admin::sales.address', ['address' => $order->shipping_address])
 
+                            @php
+                                $pickup = $order->shipping_address->additional['pickup_point'] ?? null;
+                                $pickupName = $order->shipping_address->additional['pickup_point_name'] ?? null;
+                                $pickupId = $order->shipping_address->additional['pickup_point_id'] ?? null;
+
+                                if (is_array($pickup)) {
+                                    $pickupName = $pickupName ?? ($pickup['name'] ?? null);
+                                    $pickupId = $pickupId ?? ($pickup['id'] ?? null);
+                                }
+                            @endphp
+
+                            @if ($pickup || $pickupName || $pickupId)
+                                <div class="pt-3 text-gray-600 dark:text-gray-300">
+                                    <p class="font-semibold text-gray-800 dark:text-white">Pickup point</p>
+                                    <p>
+                                        {{ $pickupName ?? $pickup ?? 'Selected' }}
+                                        @if ($pickupId)
+                                            ({{ $pickupId }})
+                                        @endif
+                                    </p>
+                                </div>
+                            @endif
+
                             {!! view_render_event('bagisto.admin.sales.order.shipping_address.after', ['order' => $order]) !!}
                         @endif
                     </x-slot>

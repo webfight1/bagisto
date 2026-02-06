@@ -59,6 +59,7 @@ class GuestCheckoutController extends Controller
             'shipping.state'               => ['nullable'],
             'shipping.postcode'            => ['nullable'],
             'shipping.phone'               => ['nullable'],
+            'shipping.additional'          => ['nullable', 'array'],
         ]);
 
         $billing = $validated['billing'];
@@ -88,6 +89,7 @@ class GuestCheckoutController extends Controller
                 'shipping.state'      => core()->isStateRequired() ? ['required'] : ['nullable'],
                 'shipping.postcode'   => core()->isPostCodeRequired() ? ['required'] : ['nullable'],
                 'shipping.phone'      => ['required'],
+                'shipping.additional' => ['nullable', 'array'],
             ]);
 
             $params['shipping'] = $requiredShipping['shipping'];
