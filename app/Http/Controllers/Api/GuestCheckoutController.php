@@ -169,6 +169,13 @@ class GuestCheckoutController extends Controller
 
         $validated = $request->validate([
             'shipping_method' => ['required'],
+            'parcel_locker' => ['nullable', 'array'],
+            'parcel_locker.locker_id' => ['nullable', 'string'],
+            'parcel_locker.locker_name' => ['nullable', 'string'],
+            'parcel_locker.locker_address' => ['nullable', 'string'],
+            'parcel_locker.locker_city' => ['nullable', 'string'],
+            'parcel_locker.locker_postcode' => ['nullable', 'string'],
+            'parcel_locker.locker_country' => ['nullable', 'string'],
         ]);
 
         Cart::collectTotals();
@@ -197,6 +204,24 @@ class GuestCheckoutController extends Controller
             return (new JsonResource([
                 'message' => 'Unable to save shipping method',
             ]))->response()->setStatusCode(Response::HTTP_FORBIDDEN);
+        }
+
+        // Save parcel locker if provided
+        if (isset($validated['parcel_locker']) && !empty($validated['parcel_locker'])) {
+            $carrier = null;
+            if (str_contains($validated['shipping_method'], 'omniva')) {
+                $carrier = 'omniva';
+            } elseif (str_contains($validated['shipping_method'], 'smartpost')) {
+                $carrier = 'smartpost';
+            }
+
+            \App\Models\CartParcelLocker::updateOrCreate(
+                ['cart_id' => $cart->id],
+                array_merge($validated['parcel_locker'], ['carrier' => $carrier])
+            );
+        } else {
+            // Remove parcel locker if shipping method changed to non-locker method
+            \App\Models\CartParcelLocker::where('cart_id', $cart->id)->delete();
         }
 
         Cart::collectTotals();

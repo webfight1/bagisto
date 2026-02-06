@@ -125,6 +125,14 @@ class Cart extends Model implements CartContract
     }
 
     /**
+     * Get the parcel locker associated with the cart.
+     */
+    public function parcelLocker(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\CartParcelLocker::class);
+    }
+
+    /**
      * Checks if cart have stockable items.
      */
     public function haveStockableItems(): bool
