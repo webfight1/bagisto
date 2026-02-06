@@ -622,26 +622,33 @@
 
                             @include ('admin::sales.address', ['address' => $order->shipping_address])
 
-                            @php
-                                $pickup = $order->shipping_address->additional['pickup_point'] ?? null;
-                                $pickupName = $order->shipping_address->additional['pickup_point_name'] ?? null;
-                                $pickupId = $order->shipping_address->additional['pickup_point_id'] ?? null;
-
-                                if (is_array($pickup)) {
-                                    $pickupName = $pickupName ?? ($pickup['name'] ?? null);
-                                    $pickupId = $pickupId ?? ($pickup['id'] ?? null);
-                                }
-                            @endphp
-
-                            @if ($pickup || $pickupName || $pickupId)
-                                <div class="pt-3 text-gray-600 dark:text-gray-300">
-                                    <p class="font-semibold text-gray-800 dark:text-white">Pickup point</p>
-                                    <p>
-                                        {{ $pickupName ?? $pickup ?? 'Selected' }}
-                                        @if ($pickupId)
-                                            ({{ $pickupId }})
+                            @if ($order->parcelLocker)
+                                <div class="pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+                                    <p class="pb-2 font-semibold text-gray-800 dark:text-white">
+                                        Parcel Locker
+                                        @if ($order->parcelLocker->carrier)
+                                            <span class="text-xs font-normal text-gray-500">({{ ucfirst($order->parcelLocker->carrier) }})</span>
                                         @endif
                                     </p>
+                                    <div class="text-gray-600 dark:text-gray-300">
+                                        @if ($order->parcelLocker->locker_name)
+                                            <p class="font-medium">{{ $order->parcelLocker->locker_name }}</p>
+                                        @endif
+                                        
+                                        @if ($order->parcelLocker->locker_id)
+                                            <p class="text-sm">ID: {{ $order->parcelLocker->locker_id }}</p>
+                                        @endif
+                                        
+                                        @if ($order->parcelLocker->locker_address)
+                                            <p class="text-sm">{{ $order->parcelLocker->locker_address }}</p>
+                                        @endif
+                                        
+                                        @if ($order->parcelLocker->locker_city || $order->parcelLocker->locker_postcode)
+                                            <p class="text-sm">
+                                                {{ $order->parcelLocker->locker_postcode }} {{ $order->parcelLocker->locker_city }}
+                                            </p>
+                                        @endif
+                                    </div>
                                 </div>
                             @endif
 

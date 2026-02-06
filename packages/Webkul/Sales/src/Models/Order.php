@@ -236,6 +236,14 @@ class Order extends Model implements OrderContract
     }
 
     /**
+     * Get the parcel locker for the order.
+     */
+    public function parcelLocker(): HasOne
+    {
+        return $this->hasOne(\App\Models\OrderParcelLocker::class);
+    }
+
+    /**
      * Get the billing address for the order.
      */
     public function billing_address()

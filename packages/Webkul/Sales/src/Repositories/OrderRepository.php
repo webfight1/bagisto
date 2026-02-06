@@ -80,6 +80,32 @@ class OrderRepository extends Repository
                 Event::dispatch('checkout.order.orderitem.save.after', $orderItem);
             }
 
+            // Save parcel locker info if present
+            if (isset($data['shipping_address']['additional']['pickup_point_id']) || 
+                isset($data['shipping_address']['additional']['pickup_point_name'])) {
+                
+                $additional = $data['shipping_address']['additional'];
+                $carrier = null;
+                
+                // Detect carrier from shipping method
+                if (isset($data['shipping_method']) && str_contains($data['shipping_method'], 'omniva')) {
+                    $carrier = 'omniva';
+                } elseif (isset($data['shipping_method']) && str_contains($data['shipping_method'], 'smartpost')) {
+                    $carrier = 'smartpost';
+                }
+                
+                \App\Models\OrderParcelLocker::create([
+                    'order_id' => $order->id,
+                    'carrier' => $carrier,
+                    'locker_id' => $additional['pickup_point_id'] ?? null,
+                    'locker_name' => $additional['pickup_point_name'] ?? ($additional['pickup_point']['name'] ?? null),
+                    'locker_address' => $additional['pickup_point']['address'] ?? null,
+                    'locker_city' => $additional['pickup_point']['city'] ?? null,
+                    'locker_postcode' => $additional['pickup_point']['postcode'] ?? null,
+                    'locker_country' => $additional['pickup_point']['country'] ?? null,
+                ]);
+            }
+
             Event::dispatch('checkout.order.save.after', $order);
         } catch (\Exception $e) {
             /* rolling back first */
