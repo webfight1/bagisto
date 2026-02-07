@@ -27,7 +27,15 @@ Route::get('/v1/product/{slug}', [SingleProductController::class, 'show']);
 // Category products by slug
 Route::get('/v1/category/{slug}', [CategoryProductController::class, 'index']);
 
-Route::post('/payments/esto/webhook', [EstoWebhookController::class, 'handle'])
+Route::post('/payments/esto/webhook', function(\Illuminate\Http\Request $request) {
+    \Illuminate\Support\Facades\Log::info('ESTO webhook received', [
+        'headers' => $request->headers->all(),
+        'body' => $request->all(),
+        'raw' => $request->getContent(),
+    ]);
+    
+    return response()->json(['message' => 'Webhook endpoint works', 'received' => $request->all()]);
+})
     ->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
     ->name('esto.webhook');
 

@@ -24,6 +24,12 @@ class EstoWebhookController
 
     public function handle(Request $request)
     {
+        Log::info('ESTO webhook received', [
+            'headers' => $request->headers->all(),
+            'body' => $request->all(),
+            'raw' => $request->getContent(),
+        ]);
+
         $payload = $request->all();
         $secret = (string) config('esto.webhook_secret');
 
