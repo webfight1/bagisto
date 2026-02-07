@@ -119,6 +119,12 @@
         "post-create-project-cmd": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate --ansi"
+        ],
+        "post-install-cmd": [
+            "@php -r \"$files = ['vendor/bagisto/rest-api/src/Http/Controllers/V1/Shop/Customer/GDPRController.php', 'vendor/bagisto/rest-api/src/Http/Controllers/V1/Admin/Customers/GDPRController.php']; foreach ($files as $file) { if (file_exists($file)) { $content = file_get_contents($file); $content = preg_replace('/^(\\s+)(if \\(! core\\(\\)->getConfigData)/m', '$1// $2', $content); $content = preg_replace('/^(\\s+)(abort\\(404\\);)/m', '$1// $2', $content); file_put_contents($file, $content); echo 'Fixed GDPR Controller: ' . basename(dirname($file)) . PHP_EOL; } }\""
+        ],
+        "post-update-cmd": [
+            "@php -r \"$files = ['vendor/bagisto/rest-api/src/Http/Controllers/V1/Shop/Customer/GDPRController.php', 'vendor/bagisto/rest-api/src/Http/Controllers/V1/Admin/Customers/GDPRController.php']; foreach ($files as $file) { if (file_exists($file)) { $content = file_get_contents($file); $content = preg_replace('/^(\\s+)(if \\(! core\\(\\)->getConfigData)/m', '$1// $2', $content); $content = preg_replace('/^(\\s+)(abort\\(404\\);)/m', '$1// $2', $content); file_put_contents($file, $content); echo 'Fixed GDPR Controller: ' . basename(dirname($file)) . PHP_EOL; } }\""
         ]
     },
     "extra": {

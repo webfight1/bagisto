@@ -36,7 +36,8 @@ class EstoWebhookController
             return response()->json(['message' => 'Invalid MAC'], 403);
         }
 
-        $dataRaw = $payload['data'] ?? null;
+        // Esto sends 'json' field, not 'data'
+        $dataRaw = $payload['json'] ?? $payload['data'] ?? null;
         $data = is_string($dataRaw) ? json_decode($dataRaw, true) : (array) $dataRaw;
 
         if (! is_array($data)) {
