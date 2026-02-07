@@ -2,4 +2,6 @@
 
 use App\Http\Controllers\Api\ImageResizeController;
 
-Route::get('/storage/{path}', [ImageResizeController::class, 'resize'])->where('path', '.*');
+Route::get('/storage/{path}', [ImageResizeController::class, 'resize'])
+    ->where('path', '.*')
+    ->middleware('web');
