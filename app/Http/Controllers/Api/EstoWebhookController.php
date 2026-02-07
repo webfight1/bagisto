@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\EstoWebhook;
-use App\Services\EstoMacValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -17,89 +16,146 @@ class EstoWebhookController
 {
     public function __construct(
         protected OrderRepository $orderRepository,
-        protected CartRepository $cartRepository,
-        protected EstoMacValidator $macValidator
+        protected CartRepository $cartRepository
     ) {}
 
     public function handle(Request $request)
     {
-        Log::info('ESTO webhook received', [
-            'headers' => $request->headers->all(),
-            'body' => $request->all(),
-            'raw' => $request->getContent(),
-        ]);
+        // ------------------------------------------------------------------
+        // 1. Parse URL-encoded body (application/x-www-form-urlencoded)
+        // ------------------------------------------------------------------
+        $rawBody = $request->getContent();
 
-        $payload = $request->all();
-        $secret = (string) config('esto.webhook_secret');
+        Log::info('ESTO webhook received');
 
-        if (! $this->macValidator->isValid($payload, $secret)) {
+        parse_str($rawBody, $payload);
+
+        if (! is_array($payload)) {
+            Log::error('ESTO: Invalid body format');
+            return response()->json(['message' => 'Invalid body'], 400);
+        }
+
+        $jsonData = $payload['json'] ?? null;
+        $mac      = $payload['mac'] ?? null;
+
+        if (! $jsonData || ! $mac) {
+            return response()->json(['message' => 'Missing json or mac'], 400);
+        }
+
+        // ------------------------------------------------------------------
+        // 2. Validate MAC (UPPERCASE(SHA512(json + API_SECRET)))
+        // ------------------------------------------------------------------
+        $secret = config('services.esto.secret') ?? config('esto.webhook_secret');
+
+        $expectedMac = strtoupper(
+            hash('sha512', $jsonData . $secret)
+        );
+
+        if (! hash_equals(strtoupper($mac), $expectedMac)) {
+            Log::error('ESTO: Invalid MAC', [
+                'received' => $mac,
+                'expected' => $expectedMac,
+            ]);
+
             return response()->json(['message' => 'Invalid MAC'], 403);
         }
 
-        // Esto sends 'json' field, not 'data'
-        $dataRaw = $payload['json'] ?? $payload['data'] ?? null;
-        $data = is_string($dataRaw) ? json_decode($dataRaw, true) : (array) $dataRaw;
+        Log::info('ESTO: MAC valid');
+
+        // ------------------------------------------------------------------
+        // 3. Decode ESTO json payload
+        // ------------------------------------------------------------------
+        $data = json_decode($jsonData, true);
 
         if (! is_array($data)) {
-            return response()->json(['message' => 'Invalid payload data'], 400);
+            return response()->json(['message' => 'Invalid json payload'], 400);
         }
 
         $reference = (string) ($data['reference'] ?? '');
-        $status = strtoupper((string) ($data['status'] ?? ''));
-        $amount = isset($data['amount']) ? (float) $data['amount'] : null;
-        $currency = (string) ($data['currency'] ?? '');
+        $status    = strtoupper((string) ($data['status'] ?? ''));
+        $amount    = isset($data['amount']) ? (float) $data['amount'] : null;
+        $currency  = strtoupper((string) ($data['currency'] ?? ''));
 
         if (! $reference) {
             return response()->json(['message' => 'Missing reference'], 400);
         }
 
+        // ------------------------------------------------------------------
+        // 4. Idempotency – already processed?
+        // ------------------------------------------------------------------
         $existingWebhook = EstoWebhook::where('reference', $reference)->first();
 
         if ($existingWebhook?->order_id) {
-            return response()->json(['message' => 'OK', 'order_id' => $existingWebhook->order_id]);
+            return response()->json([
+                'message'  => 'OK',
+                'order_id' => $existingWebhook->order_id,
+            ]);
         }
 
-        if (! $this->isPaymentApproved($status)) {
+        // ------------------------------------------------------------------
+        // 5. Check payment status
+        // ------------------------------------------------------------------
+        if (! in_array($status, ['APPROVED', 'PAID', 'COMPLETED', 'SETTLED'], true)) {
             $this->storeWebhook($reference, null, $status, $amount, $currency, $payload);
-            return response()->json(['message' => 'Payment not approved', 'status' => $status], 409);
+            return response()->json(['message' => 'Payment not approved'], 409);
         }
 
-        $cartId = $this->extractCartIdFromReference($reference);
-
-        if (! $cartId) {
+        // ------------------------------------------------------------------
+        // 6. Extract cart ID from reference (cart-123-xxxx)
+        // ------------------------------------------------------------------
+        if (! preg_match('/^cart-(\d+)-/', $reference, $m)) {
             $this->storeWebhook($reference, null, $status, $amount, $currency, $payload);
             return response()->json(['message' => 'Invalid reference'], 422);
         }
 
+        $cartId = (int) $m[1];
+
+        // ------------------------------------------------------------------
+        // 7. Existing order?
+        // ------------------------------------------------------------------
         $existingOrder = $this->orderRepository->findOneWhere(['cart_id' => $cartId]);
 
         if ($existingOrder) {
             $this->storeWebhook($reference, $existingOrder->id, $status, $amount, $currency, $payload);
-            return response()->json(['message' => 'OK', 'order_id' => $existingOrder->id]);
+            return response()->json([
+                'message'  => 'OK',
+                'order_id' => $existingOrder->id,
+            ]);
         }
 
+        // ------------------------------------------------------------------
+        // 8. Load cart
+        // ------------------------------------------------------------------
         $cart = $this->cartRepository->find($cartId);
 
         if (! $cart || ! $cart->is_active) {
             $this->storeWebhook($reference, null, $status, $amount, $currency, $payload);
-            return response()->json(['message' => 'Cart not found or inactive'], 404);
+            return response()->json(['message' => 'Cart not found'], 404);
         }
 
-        if (! $this->amountMatchesCart($cart->grand_total, $amount) ||
-            ! $this->currencyMatchesCart($cart->cart_currency_code, $currency)) {
+        // Optional but recommended: amount & currency check
+        if (
+            $amount === null ||
+            round($cart->grand_total, 2) !== round($amount, 2) ||
+            strtoupper($cart->cart_currency_code) !== $currency
+        ) {
             $this->storeWebhook($reference, null, $status, $amount, $currency, $payload);
             return response()->json(['message' => 'Amount or currency mismatch'], 409);
         }
 
+        // ------------------------------------------------------------------
+        // 9. Create order
+        // ------------------------------------------------------------------
         Cart::setCart($cart);
         Cart::collectTotals();
 
-        $data = (new OrderResource(Cart::getCart()))->jsonSerialize();
-        $order = $this->orderRepository->create($data);
+        $orderData = (new OrderResource(Cart::getCart()))->jsonSerialize();
+        $order = $this->orderRepository->create($orderData);
 
         $order->status = Order::STATUS_PROCESSING;
         $order->save();
 
+        // Attach ESTO info to payment
         if ($order->payment) {
             $additional = $order->payment->additional ?? [];
             $additional['esto'] = [
@@ -113,11 +169,18 @@ class EstoWebhookController
 
         Cart::deActivateCart();
 
+        // ------------------------------------------------------------------
+        // 10. Store webhook & cleanup
+        // ------------------------------------------------------------------
         $this->storeWebhook($reference, $order->id, $status, $amount, $currency, $payload);
+        Cache::forget('esto:reference:' . $reference);
 
-        Cache::forget('esto:reference:'.$reference);
+        Log::info('ESTO: Order created', ['order_id' => $order->id]);
 
-        return response()->json(['message' => 'OK', 'order_id' => $order->id]);
+        return response()->json([
+            'message'  => 'OK',
+            'order_id' => $order->id,
+        ]);
     }
 
     protected function storeWebhook(
@@ -138,34 +201,5 @@ class EstoWebhookController
                 'payload'  => $payload,
             ]
         );
-    }
-
-    protected function isPaymentApproved(string $status): bool
-    {
-        return in_array($status, ['APPROVED', 'PAID', 'COMPLETED', 'SETTLED', 'AUTHORIZED'], true);
-    }
-
-    protected function extractCartIdFromReference(string $reference): ?int
-    {
-        if (preg_match('/^cart-(\d+)-/', $reference, $matches)) {
-            return (int) $matches[1];
-        }
-        return null;
-    }
-
-    protected function amountMatchesCart(float $cartTotal, ?float $amount): bool
-    {
-        if ($amount === null) {
-            return false;
-        }
-        return round($cartTotal, 2) === round($amount, 2);
-    }
-
-    protected function currencyMatchesCart(?string $cartCurrency, ?string $currency): bool
-    {
-        if (! $cartCurrency || ! $currency) {
-            return false;
-        }
-        return strtoupper($cartCurrency) === strtoupper($currency);
     }
 }
