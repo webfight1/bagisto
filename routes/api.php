@@ -31,6 +31,10 @@ Route::post('/payments/esto/webhook', [\App\Http\Controllers\Api\EstoWebhookCont
     ->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
     ->name('esto.webhook');
 
+// Public endpoint for WordPress thank-you page to fetch order by reference
+Route::get('/esto/order-by-reference/{reference}', [\App\Http\Controllers\Api\EstoOrderController::class, 'getByReference'])
+    ->name('esto.order-by-reference');
+
 // Categories list
 Route::get('/v1/category', [CategoryProductController::class, 'categories']);
 
