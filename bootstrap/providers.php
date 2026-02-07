@@ -33,6 +33,7 @@ return [
     Webkul\Payment\Providers\PaymentServiceProvider::class,
     Webkul\Paypal\Providers\PaypalServiceProvider::class,
     Webkul\Everypay\Providers\EverypayServiceProvider::class,
+    Webkul\Esto\Providers\EstoServiceProvider::class,
     Webkul\Product\Providers\ProductServiceProvider::class,
     Webkul\Rule\Providers\RuleServiceProvider::class,
     Webkul\Sales\Providers\SalesServiceProvider::class,

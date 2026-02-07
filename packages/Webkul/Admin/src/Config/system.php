@@ -2319,6 +2319,95 @@ return [
             ],
         ],
     ], [
+        'key'    => 'sales.payment_methods.esto',
+        'name'   => 'Esto',
+        'info'   => 'Esto',
+        'sort'   => 6,
+        'fields' => [
+            [
+                'name'          => 'title',
+                'title'         => 'admin::app.configuration.index.sales.payment-methods.title',
+                'type'          => 'text',
+                'channel_based' => true,
+                'locale_based'  => true,
+            ], [
+                'name'          => 'description',
+                'title'         => 'admin::app.configuration.index.sales.payment-methods.description',
+                'type'          => 'textarea',
+                'channel_based' => true,
+                'locale_based'  => true,
+            ], [
+                'name'          => 'image',
+                'title'         => 'admin::app.configuration.index.sales.payment-methods.logo',
+                'type'          => 'image',
+                'info'          => 'admin::app.configuration.index.sales.payment-methods.logo-information',
+                'channel_based' => false,
+                'locale_based'  => false,
+                'validation'    => 'mimes:bmp,jpeg,jpg,png,webp',
+            ], [
+                'name'          => 'shop_id',
+                'title'         => 'Shop ID',
+                'type'          => 'text',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'          => 'secret_key',
+                'title'         => 'Secret Key',
+                'type'          => 'text',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'          => 'return_url',
+                'title'         => 'Return URL',
+                'type'          => 'text',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'          => 'notification_url',
+                'title'         => 'Notification URL',
+                'type'          => 'text',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'          => 'schedule_type',
+                'title'         => 'Schedule Type',
+                'type'          => 'text',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'          => 'sandbox',
+                'title'         => 'admin::app.configuration.index.sales.payment-methods.sandbox',
+                'type'          => 'boolean',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'          => 'active',
+                'title'         => 'admin::app.configuration.index.sales.payment-methods.status',
+                'type'          => 'boolean',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'    => 'sort',
+                'title'   => 'admin::app.configuration.index.sales.payment-methods.sort-order',
+                'type'    => 'select',
+                'options' => [
+                    [
+                        'title' => '1',
+                        'value' => 1,
+                    ], [
+                        'title' => '2',
+                        'value' => 2,
+                    ], [
+                        'title' => '3',
+                        'value' => 3,
+                    ], [
+                        'title' => '4',
+                        'value' => 4,
+                    ],
+                ],
+            ],
+        ],
+    ], [
         'key'  => 'sales.order_settings',
         'name' => 'admin::app.configuration.index.sales.order-settings.title',
         'info' => 'admin::app.configuration.index.sales.order-settings.info',
