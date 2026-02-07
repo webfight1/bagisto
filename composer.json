@@ -88,6 +88,7 @@
             "Webkul\\Paypal\\": "packages/Webkul/Paypal/src",
             "Webkul\\Payment\\": "packages/Webkul/Payment/src",
             "Webkul\\Everypay\\": "packages/Webkul/Everypay/src",
+            "Webkul\\Esto\\": "packages/Webkul/Esto/src",
             "Webkul\\Product\\": "packages/Webkul/Product/src",
             "Webkul\\Rule\\": "packages/Webkul/Rule/src",
             "Webkul\\Sales\\": "packages/Webkul/Sales/src",
