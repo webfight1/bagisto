@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\OmnivaController;
 use App\Http\Controllers\Api\SmartpostController;
 use App\Http\Controllers\Api\SingleProductController;
 use App\Http\Controllers\Api\ProductPopularityController;
+use Webkul\Esto\Http\Controllers\EstoWebhookController;
 use Webkul\Shop\Http\Controllers\API\ProductController;
 use Webkul\Shop\Http\Controllers\API\ReviewController;
 
@@ -25,6 +26,10 @@ Route::get('/v1/product/{slug}', [SingleProductController::class, 'show']);
 
 // Category products by slug
 Route::get('/v1/category/{slug}', [CategoryProductController::class, 'index']);
+
+Route::post('/payments/esto/webhook', [EstoWebhookController::class, 'handle'])
+    ->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
+    ->name('esto.webhook');
 
 // Categories list
 Route::get('/v1/category', [CategoryProductController::class, 'categories']);
