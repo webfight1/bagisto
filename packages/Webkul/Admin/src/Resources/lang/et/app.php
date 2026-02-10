@@ -4670,7 +4670,7 @@ return [
                 'configure'                => 'Configure',
                 'currencies'               => 'Currencies',
                 'customers'                => 'Customers',
-                'dashboard'                => 'Dashboard',
+                'dashboard'                => 'Dashboard1',
                 'data-transfer'            => 'Data Transfer',
                 'discount'                 => 'Discount',
                 'email-templates'          => 'Email Templates',
