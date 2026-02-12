@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Http\Response;
+use Webkul\CartRule\Repositories\CartRuleCouponRepository;
 use Webkul\Checkout\Facades\Cart;
 use Webkul\Checkout\Repositories\CartRepository;
 use Webkul\Product\Repositories\ProductRepository;
@@ -17,6 +18,7 @@ class GuestCartController extends Controller
     public function __construct(
         protected CartRepository $cartRepository,
         protected ProductRepository $productRepository,
+        protected CartRuleCouponRepository $cartRuleCouponRepository,
     ) {}
 
     public function create(Request $request): JsonResource
@@ -132,6 +134,81 @@ class GuestCartController extends Controller
                 'cart_token' => $this->makeToken($cart->id),
                 'cart'       => Cart::getCart() ? new CartResource(Cart::getCart()) : null,
             ],
+        ]);
+    }
+
+    public function applyCoupon(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string',
+        ]);
+
+        $cart = $this->requireCartFromToken($request);
+
+        Cart::setCart($cart);
+
+        try {
+            $coupon = $this->cartRuleCouponRepository->findOneByField('code', $request->input('code'));
+
+            if (! $coupon) {
+                return response()->json([
+                    'data'    => new CartResource(Cart::getCart()),
+                    'message' => trans('shop::app.checkout.coupon.invalid'),
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            if (! $coupon->cart_rule->status) {
+                return response()->json([
+                    'data'    => new CartResource(Cart::getCart()),
+                    'message' => trans('shop::app.checkout.coupon.invalid'),
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            if (Cart::getCart()->coupon_code == $coupon->code) {
+                return response()->json([
+                    'data'    => new CartResource(Cart::getCart()),
+                    'message' => trans('shop::app.checkout.coupon.already-applied'),
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            Cart::setCouponCode($coupon->code)->collectTotals();
+
+            if (Cart::getCart()->coupon_code == $coupon->code) {
+                return new JsonResource([
+                    'data' => [
+                        'cart_token' => $this->makeToken($cart->id),
+                        'cart'       => new CartResource(Cart::getCart()),
+                    ],
+                    'message' => trans('shop::app.checkout.coupon.success-apply'),
+                ]);
+            }
+
+            return response()->json([
+                'data'    => new CartResource(Cart::getCart()),
+                'message' => trans('shop::app.checkout.coupon.invalid'),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (\Exception $e) {
+            return response()->json([
+                'data'    => new CartResource(Cart::getCart()),
+                'message' => trans('shop::app.checkout.coupon.error'),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public function removeCoupon(Request $request): JsonResource
+    {
+        $cart = $this->requireCartFromToken($request);
+
+        Cart::setCart($cart);
+
+        Cart::removeCouponCode()->collectTotals();
+
+        return new JsonResource([
+            'data' => [
+                'cart_token' => $this->makeToken($cart->id),
+                'cart'       => new CartResource(Cart::getCart()),
+            ],
+            'message' => trans('shop::app.checkout.coupon.remove'),
         ]);
     }
 

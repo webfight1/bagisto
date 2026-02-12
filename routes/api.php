@@ -46,6 +46,9 @@ Route::prefix('v1/guest')->group(function () {
     Route::put('/cart/items', [GuestCartController::class, 'updateItems']);
     Route::delete('/cart/items/{cartItemId}', [GuestCartController::class, 'removeItem']);
 
+    Route::post('/cart/coupon', [GuestCartController::class, 'applyCoupon']);
+    Route::delete('/cart/coupon', [GuestCartController::class, 'removeCoupon']);
+
     Route::prefix('checkout')->group(function () {
         Route::post('/addresses', [GuestCheckoutController::class, 'storeAddresses']);
         Route::get('/shipping-methods', [GuestCheckoutController::class, 'shippingMethods']);
