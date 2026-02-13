@@ -135,6 +135,20 @@ class SingleProductController extends Controller
                 ];
             })->toArray();
 
+        // Get categories this product belongs to
+        $categories = DB::table('product_categories')
+            ->join('category_translations', 'product_categories.category_id', '=', 'category_translations.category_id')
+            ->where('product_categories.product_id', $product->product_id)
+            ->where('category_translations.locale', app()->getLocale())
+            ->select(
+                'category_translations.category_id as id',
+                'category_translations.name',
+                'category_translations.slug',
+                'category_translations.url_path'
+            )
+            ->get()
+            ->toArray();
+
         return response()->json([
             'id' => $product->product_id,
             'name' => $product->name,
@@ -149,7 +163,8 @@ class SingleProductController extends Controller
             'meta_description' => $product->meta_description,
             'images' => $images,
             'attributes' => $attributes,
-            'variants' => $variants
+            'variants' => $variants,
+            'categories' => $categories
         ]);
     }
 
