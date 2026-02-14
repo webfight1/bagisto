@@ -111,43 +111,90 @@ class SingleProductController extends Controller
             }
         }
 
-        // Get main product attributes (exclude system attributes)
-        $attributes = DB::table('product_attribute_values')
+        // Get all locale translations for this product from product_flat
+        $allLocaleRows = DB::table('product_flat')
+            ->where('product_id', $product->product_id)
+            ->select('locale', 'name', 'description', 'short_description', 'meta_title', 'meta_description')
+            ->get();
+
+        $translations = [];
+        foreach ($allLocaleRows as $row) {
+            $translations[$row->locale] = [
+                'name' => $row->name,
+                'description' => $row->description,
+                'short_description' => $row->short_description,
+                'meta_title' => $row->meta_title,
+                'meta_description' => $row->meta_description,
+            ];
+        }
+
+        // Get main product attributes with all locale translations
+        $attributeRows = DB::table('product_attribute_values')
             ->join('attributes', 'product_attribute_values.attribute_id', '=', 'attributes.id')
             ->join('attribute_translations', 'attributes.id', '=', 'attribute_translations.attribute_id')
-            ->leftJoin('attribute_option_translations', 'product_attribute_values.integer_value', '=', 'attribute_option_translations.attribute_option_id')
+            ->leftJoin('attribute_option_translations', function ($join) {
+                $join->on('product_attribute_values.integer_value', '=', 'attribute_option_translations.attribute_option_id')
+                     ->on('attribute_translations.locale', '=', 'attribute_option_translations.locale');
+            })
             ->where('product_attribute_values.product_id', $product->product_id)
             ->whereNotIn('attributes.code', ['sku', 'name', 'url_key', 'price', 'description', 'short_description', 'status', 'visible_individually', 'new', 'featured'])
             ->select(
                 'attributes.code as attribute_code',
+                'attribute_translations.locale',
                 'attribute_translations.name as attribute_name',
                 'product_attribute_values.text_value',
                 'product_attribute_values.integer_value',
                 'product_attribute_values.boolean_value',
                 'attribute_option_translations.label as option_label'
             )
-            ->get()
-            ->map(function($attr) {
-                return [
-                    'code' => $attr->attribute_code,
-                    'name' => $attr->attribute_name,
-                    'value' => $attr->option_label ?? $attr->text_value ?? $attr->boolean_value ?? $attr->integer_value
-                ];
-            })->toArray();
+            ->get();
 
-        // Get categories this product belongs to
-        $categories = DB::table('product_categories')
+        // Group attributes by code, with per-locale name and option_label
+        $attributesGrouped = [];
+        foreach ($attributeRows as $attr) {
+            $code = $attr->attribute_code;
+            if (!isset($attributesGrouped[$code])) {
+                $attributesGrouped[$code] = [
+                    'code' => $code,
+                    'value' => $attr->option_label ?? $attr->text_value ?? $attr->boolean_value ?? $attr->integer_value,
+                    'names' => [],
+                    'values' => [],
+                ];
+            }
+            $attributesGrouped[$code]['names'][$attr->locale] = $attr->attribute_name;
+            if ($attr->option_label) {
+                $attributesGrouped[$code]['values'][$attr->locale] = $attr->option_label;
+            }
+        }
+        $attributes = array_values($attributesGrouped);
+
+        // Get categories this product belongs to (all locales)
+        $categoryRows = DB::table('product_categories')
             ->join('category_translations', 'product_categories.category_id', '=', 'category_translations.category_id')
             ->where('product_categories.product_id', $product->product_id)
-            ->where('category_translations.locale', app()->getLocale())
             ->select(
                 'category_translations.category_id as id',
+                'category_translations.locale',
                 'category_translations.name',
                 'category_translations.slug',
                 'category_translations.url_path'
             )
-            ->get()
-            ->toArray();
+            ->get();
+
+        // Group by category id, with per-locale names
+        $categoriesGrouped = [];
+        foreach ($categoryRows as $cat) {
+            if (!isset($categoriesGrouped[$cat->id])) {
+                $categoriesGrouped[$cat->id] = [
+                    'id' => $cat->id,
+                    'slug' => $cat->slug,
+                    'url_path' => $cat->url_path,
+                    'names' => [],
+                ];
+            }
+            $categoriesGrouped[$cat->id]['names'][$cat->locale] = $cat->name;
+        }
+        $categories = array_values($categoriesGrouped);
 
         return response()->json([
             'id' => $product->product_id,
@@ -164,7 +211,8 @@ class SingleProductController extends Controller
             'images' => $images,
             'attributes' => $attributes,
             'variants' => $variants,
-            'categories' => $categories
+            'categories' => $categories,
+            'translations' => $translations
         ]);
     }
 
