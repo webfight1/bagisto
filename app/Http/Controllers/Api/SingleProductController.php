@@ -47,17 +47,37 @@ class SingleProductController extends Controller
         // Get variants if this is a configurable product
         $variants = [];
         if ($product->type === 'configurable') {
-            // Use products table for parent_id relationship, then join product_flat for details
-            $variantProducts = DB::table('products')
-                ->join('product_flat', 'products.id', '=', 'product_flat.product_id')
-                ->where('products.parent_id', $product->product_id)
-                ->where('product_flat.status', 1)
-                ->select('product_flat.*')
+            // Get unique variant product IDs
+            $variantIds = DB::table('products')
+                ->where('parent_id', $product->product_id)
+                ->pluck('id');
+
+            // Get variant base data from product_flat (one row per variant, prefer locale with name)
+            $variantFlatRows = DB::table('product_flat')
+                ->whereIn('product_id', $variantIds)
+                ->where('status', 1)
+                ->select('product_id', 'locale', 'name', 'sku', 'price', 'special_price', 'url_key')
                 ->get();
 
-            foreach ($variantProducts as $variant) {
+            // Group by product_id: pick best base row + collect translations
+            $variantData = [];
+            foreach ($variantFlatRows as $row) {
+                $pid = $row->product_id;
+                if (!isset($variantData[$pid])) {
+                    $variantData[$pid] = ['base' => $row, 'translations' => []];
+                }
+                $variantData[$pid]['translations'][$row->locale] = $row->name;
+                // Prefer the row that has a name for base data
+                if ($row->name && !$variantData[$pid]['base']->name) {
+                    $variantData[$pid]['base'] = $row;
+                }
+            }
+
+            foreach ($variantData as $pid => $data) {
+                $base = $data['base'];
+
                 $variantImages = DB::table('product_images')
-                    ->where('product_id', $variant->product_id)
+                    ->where('product_id', $pid)
                     ->orderBy('position')
                     ->get()
                     ->map(function($img) {
@@ -70,38 +90,53 @@ class SingleProductController extends Controller
                         ];
                     });
 
-                // Get variant attributes (only custom/visible ones, exclude system attributes)
-                $attributes = DB::table('product_attribute_values')
+                // Get variant attributes with all locale translations
+                $varAttrRows = DB::table('product_attribute_values')
                     ->join('attributes', 'product_attribute_values.attribute_id', '=', 'attributes.id')
                     ->join('attribute_translations', 'attributes.id', '=', 'attribute_translations.attribute_id')
-                    ->leftJoin('attribute_option_translations', 'product_attribute_values.integer_value', '=', 'attribute_option_translations.attribute_option_id')
-                    ->where('product_attribute_values.product_id', $variant->product_id)
+                    ->leftJoin('attribute_option_translations', function ($join) {
+                        $join->on('product_attribute_values.integer_value', '=', 'attribute_option_translations.attribute_option_id')
+                             ->on('attribute_translations.locale', '=', 'attribute_option_translations.locale');
+                    })
+                    ->where('product_attribute_values.product_id', $pid)
                     ->whereNotIn('attributes.code', ['sku', 'name', 'url_key', 'price', 'description', 'short_description', 'status', 'visible_individually', 'new', 'featured'])
                     ->select(
                         'attributes.code as attribute_code',
+                        'attribute_translations.locale',
                         'attribute_translations.name as attribute_name',
                         'product_attribute_values.text_value',
                         'product_attribute_values.integer_value',
                         'attribute_option_translations.label as option_label'
                     )
-                    ->get()
-                    ->map(function($attr) {
-                        return [
-                            'code' => $attr->attribute_code,
-                            'name' => $attr->attribute_name,
-                            'value' => $attr->option_label ?? $attr->text_value ?? $attr->integer_value
+                    ->get();
+
+                $varAttrsGrouped = [];
+                foreach ($varAttrRows as $attr) {
+                    $code = $attr->attribute_code;
+                    if (!isset($varAttrsGrouped[$code])) {
+                        $varAttrsGrouped[$code] = [
+                            'code' => $code,
+                            'value' => $attr->option_label ?? $attr->text_value ?? $attr->integer_value,
+                            'names' => [],
+                            'values' => [],
                         ];
-                    })->toArray();
+                    }
+                    $varAttrsGrouped[$code]['names'][$attr->locale] = $attr->attribute_name;
+                    if ($attr->option_label) {
+                        $varAttrsGrouped[$code]['values'][$attr->locale] = $attr->option_label;
+                    }
+                }
 
                 $variants[] = [
-                    'id' => $variant->product_id,
-                    'name' => $variant->name,
-                    'sku' => $variant->sku,
-                    'price' => $variant->price,
-                    'special_price' => $variant->special_price,
-                    'url_key' => $variant->url_key,
+                    'id' => $pid,
+                    'name' => $base->name,
+                    'sku' => $base->sku,
+                    'price' => $base->price,
+                    'special_price' => $base->special_price,
+                    'url_key' => $base->url_key,
                     'images' => $variantImages->toArray(),
-                    'attributes' => $attributes
+                    'attributes' => array_values($varAttrsGrouped),
+                    'translations' => $data['translations']
                 ];
             }
 
@@ -111,21 +146,26 @@ class SingleProductController extends Controller
             }
         }
 
-        // Get all locale translations for this product from product_flat
-        $allLocaleRows = DB::table('product_flat')
-            ->where('product_id', $product->product_id)
-            ->select('locale', 'name', 'description', 'short_description', 'meta_title', 'meta_description')
+        // Get translatable product fields from product_attribute_values
+        $translatableCodes = ['name', 'description', 'short_description', 'meta_title', 'meta_description'];
+        $translatableRows = DB::table('product_attribute_values')
+            ->join('attributes', 'product_attribute_values.attribute_id', '=', 'attributes.id')
+            ->where('product_attribute_values.product_id', $product->product_id)
+            ->whereIn('attributes.code', $translatableCodes)
+            ->whereNotNull('product_attribute_values.locale')
+            ->select(
+                'attributes.code',
+                'product_attribute_values.locale',
+                'product_attribute_values.text_value'
+            )
             ->get();
 
         $translations = [];
-        foreach ($allLocaleRows as $row) {
-            $translations[$row->locale] = [
-                'name' => $row->name,
-                'description' => $row->description,
-                'short_description' => $row->short_description,
-                'meta_title' => $row->meta_title,
-                'meta_description' => $row->meta_description,
-            ];
+        foreach ($translatableRows as $row) {
+            if (!isset($translations[$row->locale])) {
+                $translations[$row->locale] = array_fill_keys($translatableCodes, null);
+            }
+            $translations[$row->locale][$row->code] = $row->text_value;
         }
 
         // Get main product attributes with all locale translations
