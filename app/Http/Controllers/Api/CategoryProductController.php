@@ -49,19 +49,18 @@ class CategoryProductController extends Controller
         $products = $products->map(function($product) use ($width, $height, $format) {
             $product->is_configurable = $product->type === 'configurable';
             
-            // Handle configurable products - get first variant price
+            // Handle configurable products - get lowest price among all variants
             if ($product->is_configurable) {
-                $firstVariant = DB::table('product_flat')
+                $lowestPrice = DB::table('product_flat')
                     ->join('products', 'product_flat.product_id', '=', 'products.id')
                     ->where('products.parent_id', $product->id)
                     ->where('product_flat.status', 1)
-                    ->orderBy('product_flat.product_id')
-                    ->select('product_flat.price', 'product_flat.special_price')
-                    ->first();
+                    ->selectRaw('MIN(COALESCE(product_flat.special_price, product_flat.price)) as min_price')
+                    ->value('min_price');
                 
-                if ($firstVariant) {
-                    $product->price = $firstVariant->price;
-                    $product->special_price = $firstVariant->special_price;
+                if ($lowestPrice !== null) {
+                    $product->price = $lowestPrice;
+                    $product->special_price = null;
                 }
             }
             
