@@ -38,6 +38,7 @@ class CategoryProductController extends Controller
                 'product_flat.name',
                 'product_flat.sku',
                 'product_flat.price',
+                'product_flat.special_price',
                 'product_flat.type',
                 'product_flat.url_key',
                 'product_images.path as original_image'
@@ -52,11 +53,12 @@ class CategoryProductController extends Controller
                     ->where('products.parent_id', $product->id)
                     ->where('product_flat.status', 1)
                     ->orderBy('product_flat.product_id')
-                    ->select('product_flat.price')
+                    ->select('product_flat.price', 'product_flat.special_price')
                     ->first();
                 
                 if ($firstVariant) {
                     $product->price = $firstVariant->price;
+                    $product->special_price = $firstVariant->special_price;
                 }
             }
             

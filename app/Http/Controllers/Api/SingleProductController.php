@@ -59,17 +59,36 @@ class SingleProductController extends Controller
                 ->select('product_id', 'locale', 'name', 'sku', 'price', 'special_price', 'url_key')
                 ->get();
 
-            // Group by product_id: pick best base row + collect translations
+            // Group by product_id: pick best base row
             $variantData = [];
             foreach ($variantFlatRows as $row) {
                 $pid = $row->product_id;
                 if (!isset($variantData[$pid])) {
-                    $variantData[$pid] = ['base' => $row, 'translations' => []];
+                    $variantData[$pid] = ['base' => $row];
                 }
-                $variantData[$pid]['translations'][$row->locale] = $row->name;
                 // Prefer the row that has a name for base data
                 if ($row->name && !$variantData[$pid]['base']->name) {
                     $variantData[$pid]['base'] = $row;
+                }
+            }
+
+            // Get variant name translations from product_attribute_values
+            $variantNameRows = DB::table('product_attribute_values')
+                ->join('attributes', 'product_attribute_values.attribute_id', '=', 'attributes.id')
+                ->whereIn('product_attribute_values.product_id', $variantIds)
+                ->where('attributes.code', 'name')
+                ->whereNotNull('product_attribute_values.locale')
+                ->select(
+                    'product_attribute_values.product_id',
+                    'product_attribute_values.locale',
+                    'product_attribute_values.text_value'
+                )
+                ->get();
+
+            // Attach translations to variantData
+            foreach ($variantNameRows as $row) {
+                if (isset($variantData[$row->product_id])) {
+                    $variantData[$row->product_id]['translations'][$row->locale] = $row->text_value;
                 }
             }
 
@@ -136,7 +155,7 @@ class SingleProductController extends Controller
                     'url_key' => $base->url_key,
                     'images' => $variantImages->toArray(),
                     'attributes' => array_values($varAttrsGrouped),
-                    'translations' => $data['translations']
+                    'translations' => $data['translations'] ?? []
                 ];
             }
 
