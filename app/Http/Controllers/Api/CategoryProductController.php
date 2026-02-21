@@ -33,6 +33,7 @@ class CategoryProductController extends Controller
             ->where('product_categories.category_id', $category->category_id)
             ->where('product_flat.status', 1)
             ->where('product_flat.visible_individually', 1)
+            ->where('product_flat.locale', app()->getLocale())
             ->select(
                 'product_flat.product_id as id',
                 'product_flat.name',
