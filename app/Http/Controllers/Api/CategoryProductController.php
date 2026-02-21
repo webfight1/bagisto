@@ -47,8 +47,10 @@ class CategoryProductController extends Controller
             ->get();
 
         $products = $products->map(function($product) use ($width, $height, $format) {
+            $product->is_configurable = $product->type === 'configurable';
+            
             // Handle configurable products - get first variant price
-            if ($product->type === 'configurable') {
+            if ($product->is_configurable) {
                 $firstVariant = DB::table('product_flat')
                     ->join('products', 'product_flat.product_id', '=', 'products.id')
                     ->where('products.parent_id', $product->id)
