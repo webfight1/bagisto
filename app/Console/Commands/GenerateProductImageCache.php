@@ -44,8 +44,24 @@ class GenerateProductImageCache extends Command
                     $skipped++;
                 }
 
-                // Generate large (800x800)
-                $large = $this->generateOptimizedImage($image->path, 800, 800, 'webp');
+                // Generate category listing (260x260)
+                $category = $this->generateOptimizedImage($image->path, 260, 260, 'webp');
+                if ($category === 'generated') {
+                    $generated++;
+                } elseif ($category === 'exists') {
+                    $skipped++;
+                }
+
+                // Generate medium (496x496)
+                $medium = $this->generateOptimizedImage($image->path, 496, 496, 'webp');
+                if ($medium === 'generated') {
+                    $generated++;
+                } elseif ($medium === 'exists') {
+                    $skipped++;
+                }
+
+                // Generate large (992x992 for Retina)
+                $large = $this->generateOptimizedImage($image->path, 992, 992, 'webp');
                 if ($large === 'generated') {
                     $generated++;
                 } elseif ($large === 'exists') {

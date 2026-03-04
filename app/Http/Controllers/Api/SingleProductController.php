@@ -40,7 +40,8 @@ class SingleProductController extends Controller
                     'position' => $img->position,
                     'original' => '/storage/' . $img->path,
                     'thumbnail' => $this->getOptimizedImage($img->path, 80, 80, 'webp'),
-                    'large' => $this->getOptimizedImage($img->path, 800, 800, 'webp')
+                    'medium' => $this->getOptimizedImage($img->path, 496, 496, 'webp'),
+                    'large' => $this->getOptimizedImage($img->path, 992, 992, 'webp')
                 ];
             })->toArray();
 
@@ -105,7 +106,8 @@ class SingleProductController extends Controller
                             'position' => $img->position,
                             'original' => '/storage/' . $img->path,
                             'thumbnail' => $this->getOptimizedImage($img->path, 80, 80, 'webp'),
-                            'large' => $this->getOptimizedImage($img->path, 800, 800, 'webp')
+                            'medium' => $this->getOptimizedImage($img->path, 496, 496, 'webp'),
+                            'large' => $this->getOptimizedImage($img->path, 992, 992, 'webp')
                         ];
                     });
 
