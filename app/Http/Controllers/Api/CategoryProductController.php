@@ -21,7 +21,7 @@ class CategoryProductController extends Controller
         }
 
         $width = $request->query('width', 260);
-        $height = $request->query('height', 220);
+        $height = $request->query('height', 260);
         $format = $request->query('format', 'webp');
 
         $products = DB::table('product_flat')
