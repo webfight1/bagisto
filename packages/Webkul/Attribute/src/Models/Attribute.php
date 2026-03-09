@@ -113,7 +113,7 @@ class Attribute extends TranslatableModel implements AttributeContract
             $retVal = core()->getConfigData('catalog.products.attribute.image_attribute_upload_size') ?? '2048';
 
             if ($retVal) {
-                $validations[] = 'size:'.$retVal.', mimes: ["image/bmp", "image/jpeg", "image/jpg", "image/png", "image/webp"]';
+                $validations[] = 'size:'.$retVal.', mimes: ["image/bmp", "image/jpeg", "image/jpg", "image/png", "image/webp", "image/avif"]';
             }
         }
 

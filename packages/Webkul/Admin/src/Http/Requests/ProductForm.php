@@ -50,7 +50,7 @@ class ProductForm extends FormRequest
         protected ProductRepository $productRepository,
         protected ProductAttributeValueRepository $productAttributeValueRepository
     ) {
-        $this->maxVideoFileSize = core()->getConfigData('catalog.products.attribute.file_attribute_upload_size') ?: '2048';
+        $this->maxVideoFileSize = core()->getConfigData('catalog.products.attribute.file_attribute_upload_size') ?: '51200';
     }
 
     /**
@@ -75,7 +75,7 @@ class ProductForm extends FormRequest
         $this->rules = array_merge($this->product->getTypeInstance()->getTypeValidationRules(), [
             'sku'                  => ['required', 'unique:products,sku,'.$this->id, new Slug],
             'url_key'              => ['required', new ProductCategoryUniqueSlug('products', $this->id)],
-            'images.files.*'       => ['nullable', 'mimes:bmp,jpeg,jpg,png,webp'],
+            'images.files.*'       => ['nullable', 'mimes:bmp,jpeg,jpg,png,webp,avif'],
             'images.positions.*'   => ['nullable', 'integer'],
             'videos.files.*'       => ['nullable', 'mimetypes:application/octet-stream,video/mp4,video/webm,video/quicktime', 'max:'.$this->maxVideoFileSize],
             'videos.positions.*'   => ['nullable', 'integer'],
@@ -93,7 +93,7 @@ class ProductForm extends FormRequest
             foreach (request()->images['files'] as $key => $file) {
                 if (Str::contains($key, 'image_')) {
                     $this->rules = array_merge($this->rules, [
-                        'images.files.'.$key => ['required', 'mimes:bmp,jpeg,jpg,png,webp'],
+                        'images.files.'.$key => ['required', 'mimes:bmp,jpeg,jpg,png,webp,avif'],
                     ]);
                 }
             }
