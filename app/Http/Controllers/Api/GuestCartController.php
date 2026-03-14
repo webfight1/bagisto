@@ -89,9 +89,9 @@ class GuestCartController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return (new JsonResource([
+            return response()->json([
                 'message' => $e->getMessage(),
-            ]))->response()->setStatusCode(Response::HTTP_BAD_REQUEST);
+            ], Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -111,9 +111,9 @@ class GuestCartController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return (new JsonResource([
+            return response()->json([
                 'message' => $e->getMessage(),
-            ]))->response()->setStatusCode(Response::HTTP_BAD_REQUEST);
+            ], Response::HTTP_BAD_REQUEST);
         }
     }
 
