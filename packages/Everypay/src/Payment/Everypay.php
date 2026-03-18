@@ -48,8 +48,10 @@ class Everypay extends Payment
 
         $amount = round((float) $cart->grand_total, 2);
 
-        if (! $customerUrl) {
-            $customerUrl = config('app.url');
+        // LHV API requires a valid registered domain for customer_url
+        // If customer_url is not configured or is localhost, use bonex.ee
+        if (! $customerUrl || str_contains($customerUrl, 'localhost') || str_contains($customerUrl, '127.0.0.1')) {
+            $customerUrl = 'https://bonex.ee';
         }
 
         $callbackUrl = route('everypay.callback');

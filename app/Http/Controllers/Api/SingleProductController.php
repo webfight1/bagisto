@@ -45,6 +45,27 @@ class SingleProductController extends Controller
                 ];
             })->toArray();
 
+        // Get product videos (skip missing files)
+        $videos = DB::table('product_videos')
+            ->where('product_id', $product->product_id)
+            ->orderBy('position')
+            ->get()
+            ->map(function ($video) {
+                if (! Storage::disk('public')->exists($video->path)) {
+                    return null;
+                }
+
+                return [
+                    'id'       => $video->id,
+                    'type'     => $video->type,
+                    'position' => $video->position,
+                    'url'      => Storage::disk('public')->url($video->path),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->toArray();
+
         // Get variants if this is a configurable product
         $variants = [];
         if ($product->type === 'configurable') {
@@ -270,6 +291,7 @@ class SingleProductController extends Controller
             'meta_title' => $product->meta_title,
             'meta_description' => $product->meta_description,
             'images' => $images,
+            'videos' => $videos,
             'attributes' => $attributes,
             'variants' => $variants,
             'categories' => $categories,
