@@ -36,4 +36,12 @@ return [
         'default_rate' => '2.99',
         'class'        => 'Webkul\Shipping\Carriers\Smartpost',
     ],
+    'dpd' => [
+        'code'         => 'dpd',
+        'title'        => 'DPD',
+        'description'  => 'DPD parcel locker',
+        'active'       => true,
+        'default_rate' => '2.99',
+        'class'        => 'Webkul\Shipping\Carriers\Dpd',
+    ],
 ];
