@@ -45,26 +45,19 @@ class SingleProductController extends Controller
                 ];
             })->toArray();
 
-        // Get product videos (skip missing files)
+        // Get product videos
         $videos = DB::table('product_videos')
             ->where('product_id', $product->product_id)
             ->orderBy('position')
             ->get()
-            ->map(function ($video) {
-                if (! Storage::disk('public')->exists($video->path)) {
-                    return null;
-                }
-
+            ->map(function($video) {
                 return [
-                    'id'       => $video->id,
-                    'type'     => $video->type,
+                    'id' => $video->id,
+                    'type' => $video->type,
                     'position' => $video->position,
-                    'url'      => Storage::disk('public')->url($video->path),
+                    'path' => '/storage/' . $video->path,
                 ];
-            })
-            ->filter()
-            ->values()
-            ->toArray();
+            })->toArray();
 
         // Get variants if this is a configurable product
         $variants = [];
@@ -278,13 +271,16 @@ class SingleProductController extends Controller
         }
         $categories = array_values($categoriesGrouped);
 
+        // Get prices from product_attribute_values (the correct source)
+        $prices = $this->getProductPrices($product->product_id);
+
         return response()->json([
             'id' => $product->product_id,
             'name' => $product->name,
             'sku' => $product->sku,
             'type' => $product->type,
-            'price' => $product->price,
-            'special_price' => $product->special_price,
+            'price' => $prices['price'],
+            'special_price' => $prices['special_price'],
             'url_key' => $product->url_key,
             'description' => $product->description,
             'short_description' => $product->short_description,
@@ -355,5 +351,24 @@ class SingleProductController extends Controller
         } catch (\Exception $e) {
             return "/storage/{$originalPath}";
         }
+    }
+
+    /**
+     * Get product prices from product_attribute_values table
+     */
+    private function getProductPrices($productId)
+    {
+        $priceAttributes = DB::table('product_attribute_values')
+            ->join('attributes', 'product_attribute_values.attribute_id', '=', 'attributes.id')
+            ->where('product_attribute_values.product_id', $productId)
+            ->whereIn('attributes.code', ['price', 'special_price'])
+            ->select('attributes.code', 'product_attribute_values.text_value', 'product_attribute_values.float_value')
+            ->get()
+            ->keyBy('code');
+
+        return [
+            'price' => $priceAttributes['price']->float_value ?? 0,
+            'special_price' => $priceAttributes['special_price']->float_value ?? null,
+        ];
     }
 }
