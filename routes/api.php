@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\GuestCartController;
 use App\Http\Controllers\Api\GuestCheckoutController;
 use App\Http\Controllers\Api\DpdController;
 use App\Http\Controllers\Api\OmnivaController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SmartpostController;
 use App\Http\Controllers\Api\SingleProductController;
 use App\Http\Controllers\Api\ProductPopularityController;
@@ -70,6 +71,7 @@ Route::get('/v1/catalog/price-range', [ProductController::class, 'priceRange']);
 // Public product reviews listing (approved only)
 Route::get('/v1/products/{id}/reviews', [ReviewController::class, 'index']);
 
+Route::get('/v1/search', [SearchController::class, 'search']);
 Route::get('/v1/dpd/locations', [DpdController::class, 'locations']);
 Route::get('/v1/omniva/locations', [OmnivaController::class, 'locations']);
 Route::get('/v1/smartpost/locations', [SmartpostController::class, 'locations']);

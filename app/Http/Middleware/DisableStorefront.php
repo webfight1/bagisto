@@ -10,6 +10,21 @@ class DisableStorefront
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // Allow GraphQL and GraphiQL endpoints
+        $allowedPaths = [
+            '/graphql', 
+            '/graphiql', 
+            '/api/docs', 
+            '/api/v1/*',
+            '/shop/api/*'
+        ];
+        
+        foreach ($allowedPaths as $path) {
+            if ($request->is($path) || $request->is($path . '*')) {
+                return $next($request);
+            }
+        }
+
         return response()->json([
             'message' => 'Storefront disabled. Use API endpoints.',
         ], Response::HTTP_NOT_FOUND);
