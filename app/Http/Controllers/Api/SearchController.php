@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Facades\Image;
 
 class SearchController extends Controller
 {
@@ -50,6 +52,11 @@ class SearchController extends Controller
                 ->orderBy('position')
                 ->first();
 
+            $optimizedImage = null;
+            if ($image) {
+                $optimizedImage = $this->getOptimizedImage($image->path, 200, 200, 'webp');
+            }
+
             $results[] = [
                 'id' => $product->product_id,
                 'name' => $product->name,
@@ -57,7 +64,7 @@ class SearchController extends Controller
                 'price' => $product->price,
                 'special_price' => $product->special_price,
                 'url_key' => $product->url_key,
-                'image' => $image ? '/storage/' . $image->path : null,
+                'image' => $optimizedImage,
             ];
         }
 
@@ -68,5 +75,50 @@ class SearchController extends Controller
                 'query' => $query,
             ]
         ]);
+    }
+
+    protected function getOptimizedImage($imagePath, $width, $height, $format)
+    {
+        $sourcePath = storage_path('app/public/' . $imagePath);
+        
+        if (!file_exists($sourcePath)) {
+            return null;
+        }
+
+        $pathInfo = pathinfo($imagePath);
+        $cacheDir = 'cache/' . $pathInfo['dirname'];
+        $cacheName = $pathInfo['filename'] . "_{$width}x{$height}.{$format}";
+        $cachePath = $cacheDir . '/' . $cacheName;
+        $cacheFullPath = storage_path('app/public/' . $cachePath);
+
+        if (!file_exists($cacheFullPath)) {
+            if (!file_exists(dirname($cacheFullPath))) {
+                mkdir(dirname($cacheFullPath), 0755, true);
+            }
+
+            $img = Image::make($sourcePath);
+            
+            // Resize and crop from top to preserve upper part of image
+            $img->resize($width, null, function ($constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            });
+            
+            if ($img->height() > $height) {
+                $img->crop($width, $height, 0, 0);
+            }
+
+            if ($format === 'webp') {
+                $img->encode('webp', 85);
+            } elseif ($format === 'jpg' || $format === 'jpeg') {
+                $img->encode('jpg', 85);
+            } elseif ($format === 'png') {
+                $img->encode('png');
+            }
+
+            $img->save($cacheFullPath);
+        }
+
+        return '/storage/' . $cachePath;
     }
 }
