@@ -22,7 +22,7 @@ class SearchController extends Controller
             ]);
         }
 
-        // Search products by name, sku, or description
+        // Search products by name, sku, or description - exclude variant products
         $products = DB::table('product_flat')
             ->where('status', 1)
             ->where('visible_individually', 1)
@@ -30,6 +30,12 @@ class SearchController extends Controller
                 $q->where('name', 'LIKE', "%{$query}%")
                   ->orWhere('sku', 'LIKE', "%{$query}%")
                   ->orWhere('short_description', 'LIKE', "%{$query}%");
+            })
+            ->whereNotIn('product_id', function($query) {
+                // Exclude variant products (products that have a parent_id)
+                $query->select('id')
+                      ->from('products')
+                      ->whereNotNull('parent_id');
             })
             ->select('product_id', 'name', 'sku', 'price', 'special_price', 'url_key')
             ->groupBy('product_id')
