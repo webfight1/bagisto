@@ -36,6 +36,14 @@ return [
         'default_rate' => '2.99',
         'class'        => 'Webkul\Shipping\Carriers\Smartpost',
     ],
+    'smartpost_fi' => [
+        'code'         => 'smartpost_fi',
+        'title'        => 'Itella Smartpost Finland',
+        'description'  => 'Itella Smartpost Finland parcel locker',
+        'active'       => true,
+        'default_rate' => '2.99',
+        'class'        => 'Webkul\Shipping\Carriers\SmartpostFi',
+    ],
     'dpd' => [
         'code'         => 'dpd',
         'title'        => 'DPD',

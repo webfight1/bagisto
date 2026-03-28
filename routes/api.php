@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\GuestCheckoutController;
 use App\Http\Controllers\Api\DpdController;
 use App\Http\Controllers\Api\OmnivaController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SmartpostFiController;
 use App\Http\Controllers\Api\SmartpostController;
 use App\Http\Controllers\Api\SingleProductController;
 use App\Http\Controllers\Api\ProductPopularityController;
@@ -75,6 +76,7 @@ Route::get('/v1/search', [SearchController::class, 'search']);
 Route::get('/v1/dpd/locations', [DpdController::class, 'locations']);
 Route::get('/v1/omniva/locations', [OmnivaController::class, 'locations']);
 Route::get('/v1/smartpost/locations', [SmartpostController::class, 'locations']);
+Route::get('/v1/smartpost/fi/locations', [SmartpostFiController::class, 'locations']);
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/products/{id}/review', [ReviewController::class, 'store']);

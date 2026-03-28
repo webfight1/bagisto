@@ -1861,10 +1861,46 @@ return [
             ],
         ],
     ], [
+        'key'    => 'sales.carriers.smartpost_fi',
+        'name'   => 'Itella Smartpost Finland',
+        'info'   => 'Itella Smartpost Finland parcel locker shipping',
+        'sort'   => 5,
+        'fields' => [
+            [
+                'name'          => 'title',
+                'title'         => 'Title',
+                'type'          => 'text',
+                'depends'       => 'active:1',
+                'validation'    => 'required_if:active,1',
+                'channel_based' => true,
+                'locale_based'  => true,
+            ], [
+                'name'          => 'description',
+                'title'         => 'Description',
+                'type'          => 'textarea',
+                'channel_based' => true,
+                'locale_based'  => true,
+            ], [
+                'name'          => 'default_rate',
+                'title'         => 'Rate',
+                'type'          => 'text',
+                'depends'       => 'active:1',
+                'validation'    => 'required_if:active,1|decimal',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'          => 'active',
+                'title'         => 'Status',
+                'type'          => 'boolean',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ],
+        ],
+    ], [
         'key'    => 'sales.carriers.dpd',
         'name'   => 'DPD',
         'info'   => 'DPD parcel locker shipping',
-        'sort'   => 5,
+        'sort'   => 6,
         'fields' => [
             [
                 'name'          => 'title',
