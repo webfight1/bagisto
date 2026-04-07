@@ -156,6 +156,9 @@ class MeritInvoiceService
             $itemTotal = $itemPrice * $itemQty;
             $totalAmount += $itemTotal;
 
+            // Convert to string and back to float to avoid precision issues in JSON
+            $roundedPrice = (float) number_format((float) $itemPrice, 2, '.', '');
+
             $invoiceRows[] = [
                 'Item' => [
                     'Code' => $item->sku ?? 'ITEM-' . $item->id,
@@ -164,7 +167,7 @@ class MeritInvoiceService
                     'UOMName' => 'tk',
                 ],
                 'Quantity' => (float) $itemQty,
-                'Price' => round((float) $itemPrice, 2),
+                'Price' => $roundedPrice,
                 'DiscountPct' => 0,
                 'DiscountAmount' => 0.00,
                 'TaxId' => $taxId,
@@ -175,6 +178,9 @@ class MeritInvoiceService
         if ($order->shipping_amount > 0) {
             $totalAmount += $order->shipping_amount;
             
+            // Convert to string and back to float to avoid precision issues in JSON
+            $roundedShipping = (float) number_format((float) $order->shipping_amount, 2, '.', '');
+            
             $invoiceRows[] = [
                 'Item' => [
                     'Code' => 'SHIPPING',
@@ -183,7 +189,7 @@ class MeritInvoiceService
                     'UOMName' => 'tk',
                 ],
                 'Quantity' => 1.0,
-                'Price' => round((float) $order->shipping_amount, 2),
+                'Price' => $roundedShipping,
                 'DiscountPct' => 0,
                 'DiscountAmount' => 0.00,
                 'TaxId' => $taxId,
