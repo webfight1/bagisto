@@ -220,6 +220,12 @@ class MeritInvoiceService
             'Fcomment' => 'Bagisto order ID: ' . $order->id,
         ];
 
+        // Debug: Log invoice data before sending
+        Log::info('Merit invoice data to send', [
+            'order_id' => $order->id,
+            'invoice_data' => $invoiceData,
+        ]);
+
         // Send to Merit API
         $httpBody = json_encode($invoiceData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $timestamp = $this->getTimestamp();
