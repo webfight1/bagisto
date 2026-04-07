@@ -190,11 +190,10 @@ class MeritInvoiceService
             ];
         }
 
-        // Calculate tax amount
-        $taxAmount = $totalAmount * ($defaultTaxPct / 100);
-        
-        // TotalAmount must include tax to match Merit API requirements
-        $totalWithTax = $totalAmount + $taxAmount;
+        // Use order's grand_total as it already includes everything correctly
+        // Bagisto prices are gross (include tax), so we use the order total directly
+        $orderTotal = (float) $order->grand_total;
+        $orderTaxAmount = (float) $order->tax_amount;
 
         // Prepare invoice data
         $invoiceNo = config('merit-invoice.invoice.number_prefix', 'ORDER-') . $order->increment_id;
@@ -209,12 +208,12 @@ class MeritInvoiceService
             'InvoiceNo' => $invoiceNo,
             'CurrencyCode' => config('merit-invoice.invoice.currency_code', 'EUR'),
             'InvoiceRow' => $invoiceRows,
-            'TotalAmount' => round($totalWithTax, 2),
+            'TotalAmount' => round($orderTotal, 2),
             'RoundingAmount' => 0.00,
             'TaxAmount' => [
                 [
                     'TaxId' => $taxId,
-                    'Amount' => round($taxAmount, 2),
+                    'Amount' => round($orderTaxAmount, 2),
                 ],
             ],
             'Hcomment' => 'Order #' . $order->increment_id,
