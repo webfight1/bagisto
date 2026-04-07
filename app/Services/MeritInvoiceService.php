@@ -234,7 +234,13 @@ class MeritInvoiceService
         ]);
 
         // Send to Merit API
+        // Set precision to avoid float representation issues
+        ini_set('serialize_precision', '2');
+        ini_set('precision', '14');
         $httpBody = json_encode($invoiceData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        ini_restore('serialize_precision');
+        ini_restore('precision');
+        
         $timestamp = $this->getTimestamp();
         $signature = $this->createSignature($this->apiId, $timestamp, $httpBody);
 
