@@ -192,6 +192,9 @@ class MeritInvoiceService
 
         // Calculate tax amount
         $taxAmount = $totalAmount * ($defaultTaxPct / 100);
+        
+        // TotalAmount must include tax to match Merit API requirements
+        $totalWithTax = $totalAmount + $taxAmount;
 
         // Prepare invoice data
         $invoiceNo = config('merit-invoice.invoice.number_prefix', 'ORDER-') . $order->increment_id;
@@ -206,7 +209,7 @@ class MeritInvoiceService
             'InvoiceNo' => $invoiceNo,
             'CurrencyCode' => config('merit-invoice.invoice.currency_code', 'EUR'),
             'InvoiceRow' => $invoiceRows,
-            'TotalAmount' => round($totalAmount, 2),
+            'TotalAmount' => round($totalWithTax, 2),
             'RoundingAmount' => 0.00,
             'TaxAmount' => [
                 [
