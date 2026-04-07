@@ -156,8 +156,8 @@ class MeritInvoiceService
             $itemTotal = $itemPrice * $itemQty;
             $totalAmount += $itemTotal;
 
-            // Convert to string and back to float to avoid precision issues in JSON
-            $roundedPrice = (float) number_format((float) $itemPrice, 2, '.', '');
+            // Force proper float precision by converting through string
+            $roundedPrice = floatval(sprintf('%.2f', (float) $itemPrice));
 
             $invoiceRows[] = [
                 'Item' => [
@@ -178,8 +178,8 @@ class MeritInvoiceService
         if ($order->shipping_amount > 0) {
             $totalAmount += $order->shipping_amount;
             
-            // Convert to string and back to float to avoid precision issues in JSON
-            $roundedShipping = (float) number_format((float) $order->shipping_amount, 2, '.', '');
+            // Force proper float precision by converting through string
+            $roundedShipping = floatval(sprintf('%.2f', (float) $order->shipping_amount));
             
             $invoiceRows[] = [
                 'Item' => [
@@ -198,8 +198,9 @@ class MeritInvoiceService
 
         // Use order's grand_total as it already includes everything correctly
         // Bagisto prices are gross (include tax), so we use the order total directly
-        $orderTotal = (float) $order->grand_total;
-        $orderTaxAmount = (float) $order->tax_amount;
+        // Force proper float precision to match invoice rows
+        $orderTotal = floatval(sprintf('%.2f', (float) $order->grand_total));
+        $orderTaxAmount = floatval(sprintf('%.2f', (float) $order->tax_amount));
 
         // Prepare invoice data
         $invoiceNo = config('merit-invoice.invoice.number_prefix', 'ORDER-') . $order->increment_id;
