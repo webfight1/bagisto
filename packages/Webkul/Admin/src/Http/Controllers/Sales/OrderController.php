@@ -2,6 +2,7 @@
 
 namespace Webkul\Admin\Http\Controllers\Sales;
 
+use App\Models\MeritInvoice;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -123,7 +124,13 @@ class OrderController extends Controller
     {
         $order = $this->orderRepository->findOrFail($id);
 
-        return view('admin::sales.orders.view', compact('order'));
+        $meritInvoice = MeritInvoice::query()
+            ->where('order_id', $order->id)
+            ->where('status', 'created')
+            ->latest('id')
+            ->first();
+
+        return view('admin::sales.orders.view', compact('order', 'meritInvoice'));
     }
 
     /**

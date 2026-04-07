@@ -106,6 +106,18 @@
                 </div>
             @endif
 
+            @if (! empty($meritInvoice?->pdf_path))
+                <a
+                    href="{{ url('/storage/' . ltrim($meritInvoice->pdf_path, '/')) }}"
+                    target="_blank"
+                    class="transparent-button px-1 py-1.5 hover:bg-gray-200 dark:text-white dark:hover:bg-gray-800"
+                >
+                    <span class="icon-download text-2xl"></span>
+
+                    Merit arve PDF
+                </a>
+            @endif
+
             {!! view_render_event('bagisto.admin.sales.order.page_action.after', ['order' => $order]) !!}
         </div>
 

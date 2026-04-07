@@ -39,7 +39,9 @@ class OrderDataGrid extends DataGrid
                 'customer_email',
                 'orders.cart_id as items',
                 DB::raw('CONCAT('.DB::getTablePrefix().'orders.customer_first_name, " ", '.DB::getTablePrefix().'orders.customer_last_name) as full_name'),
-                DB::raw('CONCAT('.DB::getTablePrefix().'order_address_billing.city, ", ", '.DB::getTablePrefix().'order_address_billing.state,", ", '.DB::getTablePrefix().'order_address_billing.country) as location')
+                DB::raw('CONCAT('.DB::getTablePrefix().'order_address_billing.city, ", ", '.DB::getTablePrefix().'order_address_billing.state,", ", '.DB::getTablePrefix().'order_address_billing.country) as location'),
+                DB::raw('(SELECT mi.invoice_no FROM '.DB::getTablePrefix().'merit_invoices mi WHERE mi.order_id = '.DB::getTablePrefix().'orders.id AND mi.status = "created" ORDER BY mi.id DESC LIMIT 1) as merit_invoice_no'),
+                DB::raw('(SELECT mi.pdf_path FROM '.DB::getTablePrefix().'merit_invoices mi WHERE mi.order_id = '.DB::getTablePrefix().'orders.id AND mi.status = "created" ORDER BY mi.id DESC LIMIT 1) as merit_pdf_path')
             )
             ->groupBy('orders.id');
 
@@ -126,6 +128,25 @@ class OrderDataGrid extends DataGrid
                     case Order::STATUS_FRAUD:
                         return '<p class="label-canceled">'.trans('admin::app.sales.orders.index.datagrid.fraud').'</p>';
                 }
+            },
+        ]);
+
+        $this->addColumn([
+            'index'      => 'merit_invoice_no',
+            'label'      => 'Merit Arve',
+            'type'       => 'string',
+            'sortable'   => false,
+            'searchable' => false,
+            'filterable' => false,
+            'closure'    => function ($row) {
+                if (empty($row->merit_pdf_path)) {
+                    return '-';
+                }
+
+                $url = url('/storage/' . ltrim($row->merit_pdf_path, '/'));
+                $text = $row->merit_invoice_no ?: 'Ava PDF';
+
+                return '<a href="'.$url.'" target="_blank" class="text-blue-600 hover:underline">'.$text.'</a>';
             },
         ]);
 

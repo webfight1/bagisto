@@ -1,0 +1,136 @@
+<?php
+
+namespace App\Listeners;
+
+use App\Mail\MeritInvoiceGenerated;
+use App\Models\MeritInvoice;
+use App\Services\MeritInvoiceService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Webkul\Sales\Contracts\Order;
+
+class CreateMeritInvoice
+{
+    protected MeritInvoiceService $meritService;
+
+    public function __construct(MeritInvoiceService $meritService)
+    {
+        $this->meritService = $meritService;
+    }
+
+    /**
+     * Handle the event - create Merit invoice after order is created
+     */
+    public function handle(Order $order): void
+    {
+        // Only create invoice for paid orders (processing or completed status)
+        $allowedStatuses = [
+            \Webkul\Sales\Models\Order::STATUS_PROCESSING,
+            \Webkul\Sales\Models\Order::STATUS_COMPLETED,
+        ];
+        
+        if (!in_array($order->status, $allowedStatuses, true)) {
+            Log::info('Skipping Merit invoice - order not paid yet', [
+                'order_id' => $order->id,
+                'status' => $order->status,
+            ]);
+            return;
+        }
+
+        // Check if invoice already exists
+        $existingInvoice = MeritInvoice::where('order_id', $order->id)->first();
+        if ($existingInvoice) {
+            Log::info('Merit invoice already exists for order', [
+                'order_id' => $order->id,
+                'invoice_id' => $existingInvoice->id,
+            ]);
+            return;
+        }
+
+        // Create pending invoice record
+        $meritInvoice = MeritInvoice::create([
+            'order_id' => $order->id,
+            'status' => 'pending',
+        ]);
+
+        try {
+            // Create invoice in Merit
+            $result = $this->meritService->createInvoice($order);
+
+            if (!$result) {
+                $meritInvoice->update([
+                    'status' => 'failed',
+                    'error_message' => 'Failed to create invoice in Merit API',
+                ]);
+                
+                Log::error('Merit invoice creation failed', [
+                    'order_id' => $order->id,
+                ]);
+                return;
+            }
+
+            $invoiceId = $result['InvoiceId'] ?? null;
+            $invoiceNo = $result['InvoiceNo'] ?? null;
+
+            if (!$invoiceId) {
+                $meritInvoice->update([
+                    'status' => 'failed',
+                    'error_message' => 'No InvoiceId in Merit response',
+                    'merit_response' => $result,
+                ]);
+                
+                Log::error('No InvoiceId in Merit response', [
+                    'order_id' => $order->id,
+                    'response' => $result,
+                ]);
+                return;
+            }
+
+            // Download PDF
+            $pdfPath = $this->meritService->getInvoicePdf($invoiceId, $invoiceNo);
+
+            // Update invoice record
+            $meritInvoice->update([
+                'merit_invoice_id' => $invoiceId,
+                'invoice_no' => $invoiceNo,
+                'pdf_path' => $pdfPath,
+                'status' => 'created',
+                'merit_response' => $result,
+            ]);
+
+            if ($pdfPath) {
+                $invoiceUrl = url('/storage/' . ltrim($pdfPath, '/'));
+
+                $billingEmail = optional(
+                    $order->addresses()->where('address_type', 'order_billing')->first()
+                )->email;
+
+                collect([$order->customer_email, $billingEmail])
+                    ->filter()
+                    ->unique()
+                    ->each(function ($email) use ($order, $invoiceNo, $invoiceUrl): void {
+                        Mail::to($email)->send(new MeritInvoiceGenerated($order, (string) $invoiceNo, $invoiceUrl));
+                    });
+            }
+
+            Log::info('Merit invoice created successfully', [
+                'order_id' => $order->id,
+                'merit_invoice_id' => $invoiceId,
+                'invoice_no' => $invoiceNo,
+                'pdf_path' => $pdfPath,
+            ]);
+
+        } catch (\Exception $e) {
+            $meritInvoice->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+            ]);
+
+            Log::error('Merit invoice creation exception', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+}

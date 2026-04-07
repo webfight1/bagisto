@@ -1,0 +1,49 @@
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Merit API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for Merit accounting system API integration.
+    | Used for automatic invoice creation when orders are placed.
+    |
+    */
+
+    'api_id' => env('MERIT_API_ID', ''),
+    
+    'api_key' => env('MERIT_API_KEY', ''),
+    
+    'base_url' => env('MERIT_BASE_URL', 'https://aktiva.merit.ee/api/v1'),
+    
+    'base_url_v2' => env('MERIT_BASE_URL_V2', 'https://aktiva.merit.ee/api/v2'),
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Invoice Settings
+    |--------------------------------------------------------------------------
+    */
+    
+    'invoice' => [
+        // Invoice number prefix (e.g., ORDER-12345)
+        'number_prefix' => env('MERIT_INVOICE_PREFIX', 'ORDER-'),
+        
+        // Payment deadline in days
+        'payment_deadline' => env('MERIT_PAYMENT_DEADLINE', 7),
+        
+        // Currency code
+        'currency_code' => env('MERIT_CURRENCY_CODE', 'EUR'),
+        
+        // Default tax percentage (0 for no VAT obligation)
+        'default_tax_pct' => env('MERIT_DEFAULT_TAX_PCT', 0),
+    ],
+    
+    /*
+    |--------------------------------------------------------------------------
+    | PDF Storage
+    |--------------------------------------------------------------------------
+    */
+    
+    'pdf_storage_path' => env('MERIT_PDF_STORAGE_PATH', 'invoices'),
+];
