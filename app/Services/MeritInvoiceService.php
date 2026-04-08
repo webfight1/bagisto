@@ -157,6 +157,17 @@ class MeritInvoiceService
             $county = $stateRaw !== '' ? mb_strtoupper(mb_substr($stateRaw, 0, 1)) . mb_substr($stateRaw, 1) : '';
         }
 
+        // Helper: return empty string if value is null, "0", 0, or the em-dash
+        // placeholder (—) that Bagisto inserts when address is not filled in.
+        $cleanAddr = static function ($value): string {
+            $str = (string) ($value ?? '');
+            // Strip em-dash placeholder and zero-only values
+            if ($str === '—' || $str === '-' || $str === '0' || $str === '') {
+                return '';
+            }
+            return $str;
+        };
+
         $customerData = [
             'Name' => $customerName,
             'RegNo' => '', // Not available in current schema
@@ -165,13 +176,14 @@ class MeritInvoiceService
             'CurrencyCode' => config('merit-invoice.invoice.currency_code', 'EUR'),
             'PaymentDeadLine' => config('merit-invoice.invoice.payment_deadline', 7),
             'OverDueCharge' => 0,
-            // Bagisto renamed address1 → address in migration 2024_03_07
-            'Address' => $billingAddress->address ?? $billingAddress->address1 ?? '',
+            // Bagisto renamed address1 → address in migration 2024_03_07.
+            // Filter out em-dash placeholder that Bagisto uses when address is empty.
+            'Address' => $cleanAddr($billingAddress->address ?? $billingAddress->address1 ?? ''),
             'CountryCode' => $countryCode,
             'County' => $county,
-            'City' => $billingAddress->city ?? '',
-            'PostalCode' => $billingAddress->postcode ?? '',
-            'PhoneNo' => $billingAddress->phone ?? '',
+            'City' => $cleanAddr($billingAddress->city ?? ''),
+            'PostalCode' => $cleanAddr($billingAddress->postcode ?? ''),
+            'PhoneNo' => $cleanAddr($billingAddress->phone ?? ''),
             'Email' => $billingAddress->email ?? $order->customer_email ?? '',
         ];
 

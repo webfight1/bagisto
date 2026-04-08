@@ -108,12 +108,15 @@ class CreateMeritInvoice
             // Download PDF
             $pdfPath = $this->meritService->getInvoicePdf($invoiceId, $invoiceNo);
 
-            // Update invoice record
+            // Mark as 'created' BEFORE sending the email so that if email fails
+            // the retry logic does not attempt to re-create the invoice in Merit
+            // (which would return "Korduv arve number" / duplicate invoice error).
             $meritInvoice->update([
                 'merit_invoice_id' => $invoiceId,
                 'invoice_no' => $invoiceNo,
                 'pdf_path' => $pdfPath,
                 'status' => 'created',
+                'error_message' => null,
                 'merit_response' => $result,
             ]);
 
@@ -125,12 +128,25 @@ class CreateMeritInvoice
                     $order->addresses()->where('address_type', 'order_billing')->first()
                 )->email;
 
-                collect([$order->customer_email, $billingEmail])
-                    ->filter()
-                    ->unique()
-                    ->each(function ($email) use ($order, $invoiceNo, $invoiceUrl): void {
-                        Mail::to($email)->send(new MeritInvoiceGenerated($order, (string) $invoiceNo, $invoiceUrl));
-                    });
+                try {
+                    collect([$order->customer_email, $billingEmail])
+                        ->filter()
+                        ->unique()
+                        ->each(function ($email) use ($order, $invoiceNo, $invoiceUrl): void {
+                            Mail::to($email)->send(new MeritInvoiceGenerated($order, (string) $invoiceNo, $invoiceUrl));
+                        });
+                } catch (\Exception $mailException) {
+                    // Email failure must NOT roll back the 'created' status – the invoice
+                    // exists in Merit and the PDF is saved. Log the error separately.
+                    Log::error('Merit invoice email send failed', [
+                        'order_id' => $order->id,
+                        'invoice_no' => $invoiceNo,
+                        'error' => $mailException->getMessage(),
+                    ]);
+                    $meritInvoice->update([
+                        'error_message' => 'Invoice created OK; email failed: ' . $mailException->getMessage(),
+                    ]);
+                }
             }
 
             Log::info('Merit invoice created successfully', [
