@@ -2417,6 +2417,50 @@ return [
                 'locale_based'  => false,
                 'validation'    => 'mimes:bmp,jpeg,jpg,png,webp',
             ], [
+                'name'          => 'generate_invoice',
+                'title'         => 'admin::app.configuration.index.sales.payment-methods.generate-invoice',
+                'type'          => 'boolean',
+                'default_value' => false,
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'       => 'invoice_status',
+                'depends'    => 'generate_invoice:1',
+                'validation' => 'required_if:generate_invoice,1',
+                'title'      => 'admin::app.configuration.index.sales.payment-methods.set-invoice-status',
+                'type'       => 'select',
+                'options'    => [
+                    [
+                        'title' => 'admin::app.configuration.index.sales.payment-methods.pending',
+                        'value' => 'pending',
+                    ], [
+                        'title' => 'admin::app.configuration.index.sales.payment-methods.paid',
+                        'value' => 'paid',
+                    ],
+                ],
+                'info'          => 'admin::app.configuration.index.sales.payment-methods.generate-invoice-applicable',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
+                'name'    => 'order_status',
+                'title'   => 'admin::app.configuration.index.sales.payment-methods.set-order-status',
+                'type'    => 'select',
+                'options' => [
+                    [
+                        'title' => 'admin::app.configuration.index.sales.payment-methods.pending',
+                        'value' => 'pending',
+                    ], [
+                        'title' => 'admin::app.configuration.index.sales.payment-methods.pending-payment',
+                        'value' => 'pending_payment',
+                    ], [
+                        'title' => 'admin::app.configuration.index.sales.payment-methods.processing',
+                        'value' => 'processing',
+                    ],
+                ],
+                'info'          => 'admin::app.configuration.index.sales.payment-methods.generate-invoice-applicable',
+                'channel_based' => true,
+                'locale_based'  => false,
+            ], [
                 'name'          => 'shop_id',
                 'title'         => 'Shop ID',
                 'type'          => 'text',

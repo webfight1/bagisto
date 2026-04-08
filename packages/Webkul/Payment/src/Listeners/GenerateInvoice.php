@@ -49,6 +49,17 @@ class GenerateInvoice
                 core()->getConfigData('sales.payment_methods.moneytransfer.order_status')
             );
         }
+
+        if (
+            $order->payment->method == 'esto'
+            && core()->getConfigData('sales.payment_methods.esto.generate_invoice')
+        ) {
+            $this->invoiceRepository->create(
+                $this->prepareInvoiceData($order),
+                core()->getConfigData('sales.payment_methods.esto.invoice_status'),
+                core()->getConfigData('sales.payment_methods.esto.order_status')
+            );
+        }
     }
 
     /**
