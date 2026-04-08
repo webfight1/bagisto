@@ -208,11 +208,11 @@ class MeritInvoiceService
             'PaymentDeadLine' => config('merit-invoice.invoice.payment_deadline', 7),
             'OverDueCharge' => 0,
             'Address' => $fullAddress,
-            'CountryCode' => $countryCode,
+            'CountryCode' => '',
             'County' => '',
             'City' => '',
-            'PostalCode' => $cleanAddr($billingAddress->postcode ?? ''),
-            'PhoneNo' => $cleanAddr($billingAddress->phone ?? ''),
+            'PostalCode' => '',
+            'PhoneNo' => '',
             'Email' => $billingAddress->email ?? $order->customer_email ?? '',
         ];
 
