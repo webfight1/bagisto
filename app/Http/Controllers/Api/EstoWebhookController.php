@@ -152,10 +152,8 @@ class EstoWebhookController
         $orderData = (new OrderResource(Cart::getCart()))->jsonSerialize();
         $order = $this->orderRepository->create($orderData);
 
-        $order->status = Order::STATUS_PROCESSING;
-        $order->save();
-
-        // Attach ESTO info to payment
+        // Attach ESTO info to payment BEFORE setting status to processing
+        // so that Merit invoice listener can access the reference
         if ($order->payment) {
             $additional = $order->payment->additional ?? [];
             $additional['esto'] = [
@@ -166,6 +164,9 @@ class EstoWebhookController
             $order->payment->additional = $additional;
             $order->payment->save();
         }
+
+        $order->status = Order::STATUS_PROCESSING;
+        $order->save();
 
         Cart::deActivateCart();
 
