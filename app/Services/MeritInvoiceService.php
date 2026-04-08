@@ -124,6 +124,9 @@ class MeritInvoiceService
             return null;
         }
 
+        // Get shipping address (fallback for street address if billing is empty)
+        $shippingAddress = $order->addresses()->where('address_type', 'order_shipping')->first();
+
         // Prepare customer data
         $customerName = $billingAddress->company_name
             ? $billingAddress->company_name
@@ -168,6 +171,12 @@ class MeritInvoiceService
             return $str;
         };
 
+        // Use billing address, but fallback to shipping address for street if billing is empty
+        $streetAddress = $cleanAddr($billingAddress->address ?? $billingAddress->address1 ?? '');
+        if (empty($streetAddress) && $shippingAddress) {
+            $streetAddress = $cleanAddr($shippingAddress->address ?? $shippingAddress->address1 ?? '');
+        }
+
         $customerData = [
             'Name' => $customerName,
             'RegNo' => '', // Not available in current schema
@@ -176,9 +185,7 @@ class MeritInvoiceService
             'CurrencyCode' => config('merit-invoice.invoice.currency_code', 'EUR'),
             'PaymentDeadLine' => config('merit-invoice.invoice.payment_deadline', 7),
             'OverDueCharge' => 0,
-            // Bagisto renamed address1 → address in migration 2024_03_07.
-            // Filter out em-dash placeholder that Bagisto uses when address is empty.
-            'Address' => $cleanAddr($billingAddress->address ?? $billingAddress->address1 ?? ''),
+            'Address' => $streetAddress,
             'CountryCode' => $countryCode,
             'County' => $county,
             'City' => $cleanAddr($billingAddress->city ?? ''),
