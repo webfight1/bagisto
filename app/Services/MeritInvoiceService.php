@@ -45,6 +45,99 @@ class MeritInvoiceService
     }
 
     /**
+     * Get next invoice number from Merit API
+     * Queries last 3 months of invoices and increments the last invoice number
+     */
+    public function getNextInvoiceNumber(): ?string
+    {
+        $periodEnd = gmdate('Ymd');
+        $periodStart = gmdate('Ymd', strtotime('-3 months'));
+        
+        $payload = [
+            'PeriodStart' => $periodStart,
+            'PeriodEnd' => $periodEnd,
+        ];
+        
+        $httpBody = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $timestamp = $this->getTimestamp();
+        $signature = $this->createSignature($this->apiId, $timestamp, $httpBody);
+
+        $url = $this->baseUrl . '/getinvoices';
+        
+        // Build URL with query parameters
+        $url .= '?' . http_build_query([
+            'apiId' => $this->apiId,
+            'timestamp' => $timestamp,
+            'signature' => $signature,
+        ]);
+        
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->withBody($httpBody, 'application/json')->post($url);
+
+            if (!$response->successful()) {
+                Log::error('Merit getInvoices failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return null;
+            }
+
+            $invoices = $response->json();
+            
+            if (empty($invoices)) {
+                // No invoices found, start with 1
+                return '1';
+            }
+
+            // Find the highest invoice number
+            $lastInvoiceNo = null;
+            $maxNumber = 0;
+            
+            foreach ($invoices as $invoice) {
+                $invoiceNo = $invoice['InvoiceNo'] ?? '';
+                
+                // Extract numeric part from invoice number
+                if (preg_match('/(\d+)/', $invoiceNo, $matches)) {
+                    $number = (int) $matches[1];
+                    if ($number > $maxNumber) {
+                        $maxNumber = $number;
+                        $lastInvoiceNo = $invoiceNo;
+                    }
+                }
+            }
+            
+            if (!$lastInvoiceNo) {
+                return '1';
+            }
+            
+            // Increment the number while preserving format
+            // e.g., "100082" -> "100083", "77" -> "78", "INV-0042" -> "INV-0043"
+            $nextNumber = $maxNumber + 1;
+            
+            // Replace the numeric part with incremented value, preserving leading zeros
+            $nextInvoiceNo = preg_replace_callback('/(\d+)/', function($matches) use ($nextNumber) {
+                $originalLength = strlen($matches[1]);
+                return str_pad($nextNumber, $originalLength, '0', STR_PAD_LEFT);
+            }, $lastInvoiceNo, 1);
+            
+            Log::info('Merit: Generated next invoice number', [
+                'last_invoice' => $lastInvoiceNo,
+                'next_invoice' => $nextInvoiceNo,
+            ]);
+            
+            return $nextInvoiceNo;
+            
+        } catch (\Exception $e) {
+            Log::error('Merit getInvoices exception', [
+                'message' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
      * Get tax rates from Merit API
      */
     public function getTaxes(): ?array
@@ -273,7 +366,14 @@ class MeritInvoiceService
         $orderTaxAmount = floatval(sprintf('%.2f', (float) $order->tax_amount));
 
         // Prepare invoice data
-        $invoiceNo = config('merit-invoice.invoice.number_prefix', 'ORDER-') . $order->increment_id;
+        // Get next invoice number from Merit API
+        $invoiceNo = $this->getNextInvoiceNumber();
+        if (!$invoiceNo) {
+            Log::error('Failed to get next invoice number from Merit', ['order_id' => $order->id]);
+            // Fallback to old method
+            $invoiceNo = config('merit-invoice.invoice.number_prefix', 'ORDER-') . $order->increment_id;
+        }
+        
         $now = $this->getTimestamp();
         $dueDate = gmdate('YmdHis', strtotime('+' . config('merit-invoice.invoice.payment_deadline', 7) . ' days'));
 
