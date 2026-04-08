@@ -166,9 +166,9 @@
         <td style="padding:24px 32px;background:#fafafa;border-radius:0 0 8px 8px;">
             <p style="margin:0 0 6px;font-size:13px;color:#888;line-height:1.6;">
                 Küsimuste korral kirjuta meile:
-                <a href="mailto:info@nailedit.ee" style="color:#2563eb;text-decoration:none;">info@nailedit.ee</a>
+                <a href="mailto:info@nailedit.ee" style="color:#5c285c;text-decoration:none;">info@nailedit.ee</a>
             </p>
-            <p style="margin:0;font-size:12px;color:#bbb;">
+            <p style="margin:0;font-size:12px;color:#5c285c;">
                 Nailedit Store &nbsp;|&nbsp; pood.nailedit.ee
             </p>
         </td>
