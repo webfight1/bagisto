@@ -260,6 +260,18 @@ class MeritInvoiceService
         if ($order->payment && $order->payment->method === 'esto') {
             $additional = $order->payment->additional ?? [];
             $estoReference = $additional['esto']['reference'] ?? null;
+            Log::info('Merit: Esto payment detected', [
+                'order_id' => $order->id,
+                'payment_method' => $order->payment->method,
+                'additional' => $additional,
+                'esto_reference' => $estoReference,
+            ]);
+        } else {
+            Log::info('Merit: Not Esto payment', [
+                'order_id' => $order->id,
+                'has_payment' => (bool) $order->payment,
+                'payment_method' => $order->payment ? $order->payment->method : null,
+            ]);
         }
 
         // Build comments with Esto reference if available
