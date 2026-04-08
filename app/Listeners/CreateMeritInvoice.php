@@ -46,18 +46,27 @@ class CreateMeritInvoice
             return;
         }
 
-        // Check if invoice already successfully created – do not duplicate.
-        // Failed or pending records are retried on the next event fire.
-        $existingInvoice = MeritInvoice::where('order_id', $order->id)->first();
+        // Check if invoice already successfully created – never duplicate.
+        // We check status='created' explicitly so that leftover 'failed' records
+        // from previous retries do not shadow a successfully created record.
+        $createdInvoice = MeritInvoice::where('order_id', $order->id)
+            ->where('status', 'created')
+            ->first();
+        if ($createdInvoice) {
+            Log::info('Merit invoice already created for order, skipping', [
+                'order_id' => $order->id,
+                'merit_invoice_id' => $createdInvoice->merit_invoice_id,
+            ]);
+            return;
+        }
+
+        // Reuse the most-recent non-created record for retry, or create a fresh one.
+        $existingInvoice = MeritInvoice::where('order_id', $order->id)
+            ->whereIn('status', ['failed', 'pending'])
+            ->latest('id')
+            ->first();
+
         if ($existingInvoice) {
-            if ($existingInvoice->status === 'created') {
-                Log::info('Merit invoice already created for order, skipping', [
-                    'order_id' => $order->id,
-                    'merit_invoice_id' => $existingInvoice->merit_invoice_id,
-                ]);
-                return;
-            }
-            // Previous attempt failed or is stuck as pending – retry and reuse the record.
             Log::info('Retrying Merit invoice for order', [
                 'order_id' => $order->id,
                 'previous_status' => $existingInvoice->status,
@@ -65,7 +74,7 @@ class CreateMeritInvoice
             $meritInvoice = $existingInvoice;
             $meritInvoice->update(['status' => 'pending', 'error_message' => null]);
         } else {
-            // Create pending invoice record
+            // Create fresh pending invoice record
             $meritInvoice = MeritInvoice::create([
                 'order_id' => $order->id,
                 'status' => 'pending',
