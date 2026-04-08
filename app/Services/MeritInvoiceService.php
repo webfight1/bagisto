@@ -248,6 +248,19 @@ class MeritInvoiceService
         $now = $this->getTimestamp();
         $dueDate = gmdate('YmdHis', strtotime('+' . config('merit-invoice.invoice.payment_deadline', 7) . ' days'));
 
+        // Get Esto reference if payment method is Esto
+        $estoReference = null;
+        if ($order->payment && $order->payment->method === 'esto') {
+            $additional = $order->payment->additional ?? [];
+            $estoReference = $additional['esto']['reference'] ?? null;
+        }
+
+        // Build comments with Esto reference if available
+        $fcomment = 'Bagisto order ID: ' . $order->id;
+        if ($estoReference) {
+            $fcomment .= ' | Esto ref: ' . $estoReference;
+        }
+
         $invoiceData = [
             'Customer' => $customerData,
             'DocDate' => $now,
@@ -265,7 +278,7 @@ class MeritInvoiceService
                 ],
             ],
             'Hcomment' => 'Order #' . $order->increment_id,
-            'Fcomment' => 'Bagisto order ID: ' . $order->id,
+            'Fcomment' => $fcomment,
         ];
 
         // Debug: Log invoice data before sending
