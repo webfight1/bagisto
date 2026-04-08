@@ -163,6 +163,10 @@ class EstoWebhookController
             ];
             $order->payment->additional = $additional;
             $order->payment->save();
+            
+            // Refresh the order to ensure payment relation is updated
+            $order->refresh();
+            $order->load('payment');
         }
 
         $order->status = Order::STATUS_PROCESSING;
