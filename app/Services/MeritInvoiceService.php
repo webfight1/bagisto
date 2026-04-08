@@ -165,7 +165,8 @@ class MeritInvoiceService
             'CurrencyCode' => config('merit-invoice.invoice.currency_code', 'EUR'),
             'PaymentDeadLine' => config('merit-invoice.invoice.payment_deadline', 7),
             'OverDueCharge' => 0,
-            'Address' => $billingAddress->address1 ?? '',
+            // Bagisto renamed address1 → address in migration 2024_03_07
+            'Address' => $billingAddress->address ?? $billingAddress->address1 ?? '',
             'CountryCode' => $countryCode,
             'County' => $county,
             'City' => $billingAddress->city ?? '',
@@ -343,7 +344,12 @@ class MeritInvoiceService
                 }
 
                 $pdfBytes = base64_decode($fileContent);
-                $fileName = $pdfData['FileName'] ?? $invoiceNo . '.pdf';
+                $rawFileName = $pdfData['FileName'] ?? $invoiceNo . '.pdf';
+
+                // Sanitise the filename so the URL never contains spaces or
+                // Estonian special characters (Merit returns names like
+                // "Bonex OÜ Arve nr ORDER-8.pdf").
+                $fileName = $this->sanitizeFileName($rawFileName);
 
                 // Store on the public disk so it is accessible via /storage/ URL.
                 // Using Storage::disk('public') ensures the file always lands in
@@ -370,5 +376,50 @@ class MeritInvoiceService
             ]);
             return null;
         }
+    }
+
+    /**
+     * Sanitise a Merit-provided filename so it is safe to use in a URL.
+     *
+     * Replaces Estonian/special characters with ASCII equivalents, converts
+     * spaces to hyphens, and strips any remaining non-alphanumeric characters
+     * (except hyphens, underscores and dots).
+     *
+     * Example: "Bonex OÜ Arve nr ORDER-8.pdf" → "Bonex-OUe-Arve-nr-ORDER-8.pdf"
+     */
+    protected function sanitizeFileName(string $fileName): string
+    {
+        $map = [
+            'Ä' => 'Ae', 'ä' => 'ae',
+            'Ö' => 'Oe', 'ö' => 'oe',
+            'Ü' => 'Ue', 'ü' => 'ue',
+            'Õ' => 'Oe', 'õ' => 'oe',
+            'Š' => 'Sh', 'š' => 'sh',
+            'Ž' => 'Zh', 'ž' => 'zh',
+            'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A',
+            'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a',
+            'É' => 'E', 'Ê' => 'E', 'è' => 'e', 'é' => 'e', 'ê' => 'e',
+            'Ï' => 'I', 'î' => 'i', 'ï' => 'i',
+            'Ô' => 'O', 'ô' => 'o',
+            'Û' => 'U', 'û' => 'u',
+            'ß' => 'ss',
+        ];
+
+        // Keep the extension intact
+        $ext = pathinfo($fileName, PATHINFO_EXTENSION);
+        $base = pathinfo($fileName, PATHINFO_FILENAME);
+
+        // Transliterate known characters
+        $base = strtr($base, $map);
+
+        // Replace spaces and any remaining non-safe characters with hyphens
+        $base = preg_replace('/[^A-Za-z0-9_\-]/', '-', $base);
+
+        // Collapse multiple consecutive hyphens
+        $base = preg_replace('/-{2,}/', '-', $base);
+
+        $base = trim($base, '-');
+
+        return $ext ? $base . '.' . $ext : $base;
     }
 }

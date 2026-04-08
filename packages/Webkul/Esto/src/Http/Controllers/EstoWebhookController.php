@@ -7,6 +7,7 @@ use App\Services\EstoMacValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Webkul\Checkout\Facades\Cart;
 use Webkul\Checkout\Repositories\CartRepository;
@@ -104,6 +105,11 @@ class EstoWebhookController
 
         $order->status = Order::STATUS_PROCESSING;
         $order->save();
+
+        // Dispatch the standard Bagisto status-change event so that listeners
+        // (e.g. CreateMeritInvoice) are triggered exactly as they would be
+        // when OrderRepository::updateStatus() is called directly.
+        Event::dispatch('sales.order.update-status.after', $order);
 
         if ($order->payment) {
             $additional = $order->payment->additional ?? [];

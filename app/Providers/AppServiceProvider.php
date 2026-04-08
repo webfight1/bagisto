@@ -41,9 +41,12 @@ class AppServiceProvider extends ServiceProvider
             Artisan::call('db:seed');
         });
 
-        // Register Merit invoice creation listeners if enabled
+        // Register Merit invoice creation listener.
+        // Triggers on sales.order.update-status.after which is dispatched both
+        // by OrderRepository::updateStatus() and explicitly by the ESTO webhook
+        // after it sets the order status to processing.
+        // Note: sales.order.save.after does not exist in Bagisto – removed.
         if (config('merit-invoice.enabled', true)) {
-            Event::listen('sales.order.save.after', CreateMeritInvoice::class);
             Event::listen('sales.order.update-status.after', CreateMeritInvoice::class);
         }
     }
