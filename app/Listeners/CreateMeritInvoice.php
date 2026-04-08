@@ -45,21 +45,31 @@ class CreateMeritInvoice
             return;
         }
 
-        // Check if invoice already exists
+        // Check if invoice already successfully created – do not duplicate.
+        // Failed or pending records are retried on the next event fire.
         $existingInvoice = MeritInvoice::where('order_id', $order->id)->first();
         if ($existingInvoice) {
-            Log::info('Merit invoice already exists for order', [
+            if ($existingInvoice->status === 'created') {
+                Log::info('Merit invoice already created for order, skipping', [
+                    'order_id' => $order->id,
+                    'merit_invoice_id' => $existingInvoice->merit_invoice_id,
+                ]);
+                return;
+            }
+            // Previous attempt failed or is stuck as pending – retry and reuse the record.
+            Log::info('Retrying Merit invoice for order', [
                 'order_id' => $order->id,
-                'invoice_id' => $existingInvoice->id,
+                'previous_status' => $existingInvoice->status,
             ]);
-            return;
+            $meritInvoice = $existingInvoice;
+            $meritInvoice->update(['status' => 'pending', 'error_message' => null]);
+        } else {
+            // Create pending invoice record
+            $meritInvoice = MeritInvoice::create([
+                'order_id' => $order->id,
+                'status' => 'pending',
+            ]);
         }
-
-        // Create pending invoice record
-        $meritInvoice = MeritInvoice::create([
-            'order_id' => $order->id,
-            'status' => 'pending',
-        ]);
 
         try {
             // Create invoice in Merit

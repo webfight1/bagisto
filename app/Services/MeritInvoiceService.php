@@ -125,9 +125,37 @@ class MeritInvoiceService
         }
 
         // Prepare customer data
-        $customerName = $billingAddress->company_name 
-            ? $billingAddress->company_name 
+        $customerName = $billingAddress->company_name
+            ? $billingAddress->company_name
             : trim($billingAddress->first_name . ' ' . $billingAddress->last_name);
+
+        // Resolve ISO 3166-1 alpha-2 country code.
+        // Bagisto normally stores the 2-letter code, but some orders may have the full name.
+        $countryRaw = $billingAddress->country ?? 'EE';
+        if (strlen($countryRaw) === 2) {
+            $countryCode = strtoupper($countryRaw);
+        } else {
+            $countryModel = \Webkul\Core\Models\Country::whereHas('translations', function ($q) use ($countryRaw) {
+                $q->where('name', $countryRaw);
+            })->first();
+            $countryCode = $countryModel ? $countryModel->code : 'EE';
+            Log::info('Merit: resolved country name to code', [
+                'raw' => $countryRaw,
+                'resolved' => $countryCode,
+            ]);
+        }
+
+        // Resolve county/state name.
+        // Bagisto may store the state as a code ("EE-86") or as a plain name ("võru").
+        $stateRaw = $billingAddress->state ?? '';
+        if (preg_match('/^[A-Z]{2}-/', $stateRaw)) {
+            // It's a Bagisto state code – look up the human-readable name.
+            $stateModel = \Webkul\Core\Models\CountryState::where('code', $stateRaw)->first();
+            $county = $stateModel ? $stateModel->default_name : $stateRaw;
+        } else {
+            // Plain text – capitalise the first letter so "võru" becomes "Võru".
+            $county = $stateRaw !== '' ? mb_strtoupper(mb_substr($stateRaw, 0, 1)) . mb_substr($stateRaw, 1) : '';
+        }
 
         $customerData = [
             'Name' => $customerName,
@@ -138,8 +166,8 @@ class MeritInvoiceService
             'PaymentDeadLine' => config('merit-invoice.invoice.payment_deadline', 7),
             'OverDueCharge' => 0,
             'Address' => $billingAddress->address1 ?? '',
-            'CountryCode' => $billingAddress->country ?? 'EE',
-            'County' => $billingAddress->state ?? '',
+            'CountryCode' => $countryCode,
+            'County' => $county,
             'City' => $billingAddress->city ?? '',
             'PostalCode' => $billingAddress->postcode ?? '',
             'PhoneNo' => $billingAddress->phone ?? '',
