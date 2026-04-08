@@ -20,7 +20,8 @@ class MeritInvoiceGenerated extends Mailable
 
     public function build(): self
     {
-        return $this->subject('Tellimuse kinnitus #' . $this->order->increment_id . ' – arve ' . $this->invoiceNo)
+        return $this->from(config('mail.from.address'), 'Nailedit')
+            ->subject('Tellimuse kinnitus #' . $this->order->increment_id . ' – arve ' . $this->invoiceNo)
             ->view('emails.merit-invoice');
     }
 }
