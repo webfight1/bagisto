@@ -108,7 +108,7 @@
 
             @if (! empty($meritInvoice?->pdf_path))
                 <a
-                    href="{{ url('/storage/' . ltrim($meritInvoice->pdf_path, '/')) }}"
+                    href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($meritInvoice->pdf_path) }}"
                     target="_blank"
                     class="transparent-button px-1 py-1.5 hover:bg-gray-200 dark:text-white dark:hover:bg-gray-800"
                 >

@@ -345,13 +345,15 @@ class MeritInvoiceService
                 $pdfBytes = base64_decode($fileContent);
                 $fileName = $pdfData['FileName'] ?? $invoiceNo . '.pdf';
 
-                // Store in storage/app/invoices/
+                // Store on the public disk so it is accessible via /storage/ URL.
+                // Using Storage::disk('public') ensures the file always lands in
+                // storage/app/public/ regardless of the FILESYSTEM_DISK env value.
                 $storagePath = config('merit-invoice.pdf_storage_path', 'invoices');
                 $filePath = $storagePath . '/' . $fileName;
-                
-                Storage::put($filePath, $pdfBytes);
 
-                Log::info('Merit invoice PDF saved', ['path' => $filePath]);
+                Storage::disk('public')->put($filePath, $pdfBytes);
+
+                Log::info('Merit invoice PDF saved', ['path' => $filePath, 'disk' => 'public']);
 
                 return $filePath;
             }

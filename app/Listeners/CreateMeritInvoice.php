@@ -7,6 +7,7 @@ use App\Models\MeritInvoice;
 use App\Services\MeritInvoiceService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Webkul\Sales\Contracts\Order;
 
 class CreateMeritInvoice
@@ -117,7 +118,8 @@ class CreateMeritInvoice
             ]);
 
             if ($pdfPath) {
-                $invoiceUrl = url('/storage/' . ltrim($pdfPath, '/'));
+                // Generate URL via the public disk so it matches where the file was saved.
+                $invoiceUrl = Storage::disk('public')->url($pdfPath);
 
                 $billingEmail = optional(
                     $order->addresses()->where('address_type', 'order_billing')->first()

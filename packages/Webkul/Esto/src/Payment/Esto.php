@@ -44,7 +44,10 @@ class Esto extends Payment
         $amount = round((float) $cart->grand_total, 2);
         $reference = $this->makeReference($cart->id);
 
-        $baseUrl = $sandbox ? 'https://api-sandbox.esto.ee' : 'https://api.esto.ee';
+        // Always use the production API endpoint.
+        // Sandbox/test mode is controlled by the connection_mode parameter per
+        // the official ESTO API documentation – not by a separate URL.
+        $baseUrl = 'https://api.esto.ee';
 
         if (! $returnUrl) {
             $returnUrl = config('app.url');
@@ -54,37 +57,60 @@ class Esto extends Payment
             $notificationUrl = route('esto.callback');
         }
 
+        // Build cart items for the items array (required by /purchase/redirect)
+        $items = [];
+        foreach ($cart->items ?? [] as $cartItem) {
+            $items[] = [
+                'name'       => $cartItem->name,
+                'unit_price' => round((float) $cartItem->price, 2),
+                'quantity'   => (int) $cartItem->quantity,
+            ];
+        }
+
         $payload = [
-            'amount'          => $amount,
-            'currency'        => $cart->cart_currency_code ?? 'EUR',
-            'reference'       => $reference,
-            'return_url'      => $returnUrl,
-            'notification_url'=> $notificationUrl,
-            'schedule_type'   => $scheduleType,
-            'customer'        => [
+            'amount'           => $amount,
+            'currency'         => $cart->cart_currency_code ?? 'EUR',
+            'reference'        => $reference,
+            'return_url'       => $returnUrl,
+            'cancel_url'       => $returnUrl,
+            'notification_url' => $notificationUrl,
+            'schedule_type'    => $scheduleType,
+            'connection_mode'  => $sandbox ? 'test' : 'live',
+            'items'            => $items,
+            'customer'         => [
                 'email'      => $cart->customer_email,
-                'phone'      => $cart->billing_address?->phone,
-                'first_name' => $cart->billing_address?->first_name,
-                'last_name'  => $cart->billing_address?->last_name,
+                'phone'      => $cart->billing_address?->phone ?? '',
+                'first_name' => $cart->billing_address?->first_name ?? '',
+                'last_name'  => $cart->billing_address?->last_name ?? '',
+                'address'    => $cart->billing_address?->address1 ?? '',
+                'city'       => $cart->billing_address?->city ?? '',
+                'post_code'  => $cart->billing_address?->postcode ?? '',
             ],
         ];
 
         $response = Http::withBasicAuth($shopId, $secretKey)
             ->asJson()
-            ->post(rtrim($baseUrl, '/').'/v2/purchase', $payload);
+            ->post(rtrim($baseUrl, '/').'/v2/purchase/redirect', $payload);
 
         if (! $response->successful()) {
             throw new \Exception('Esto create purchase failed: '.$response->body());
         }
 
         $data = $response->json();
-        $purchaseData = isset($data['data']) ? json_decode($data['data'], true) : null;
+
+        // /v2/purchase/redirect returns data as a plain JSON object (not an
+        // encoded string), so we access it directly.
+        $purchaseData = $data['data'] ?? null;
+        if (is_string($purchaseData)) {
+            // Fallback: handle the (unlikely) case where data is still a string.
+            $purchaseData = json_decode($purchaseData, true);
+        }
 
         $purchaseUrl = $purchaseData['purchase_url'] ?? null;
         $purchaseId = $purchaseData['id'] ?? null;
 
         if (! $purchaseUrl || ! $purchaseId) {
-            throw new \Exception('Esto response missing purchase_url/id');
+            throw new \Exception('Esto create purchase failed – missing purchase_url/id. Response: ' . $response->body());
         }
 
         Cache::put($this->cacheKeyForReference($reference), [
