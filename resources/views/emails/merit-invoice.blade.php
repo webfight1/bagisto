@@ -13,8 +13,8 @@
 
     {{-- Header --}}
     <tr>
-        <td style="background:#1a1a1a;padding:28px 32px;">
-            <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.3px;">
+        <td style="background:linear-gradient(to bottom, #1c0d25 0%, #56265d 100%);padding:28px 32px;">
+            <h1 style="margin:0;color:#d9c3ad;font-size:22px;font-weight:700;letter-spacing:-0.3px;">
                 Nailedit Store
             </h1>
         </td>
@@ -38,9 +38,9 @@
         <td style="padding:0 32px 28px;">
             <table cellpadding="0" cellspacing="0">
                 <tr>
-                    <td style="background:#2563eb;border-radius:6px;">
+                    <td style="background:linear-gradient(90deg, #e0b873 0%, #f9d892 50%, #e0b873 100%);border-radius:50px;">
                         <a href="{{ $invoiceUrl }}"
-                           style="display:inline-block;padding:12px 24px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">
+                           style="display:inline-block;padding:12px 24px;color:#5c285c;text-decoration:none;font-size:15px;font-weight:600;">
                             ⬇&nbsp; Lae alla arve (PDF) – {{ $invoiceNo }}
                         </a>
                     </td>
@@ -48,7 +48,7 @@
             </table>
             <p style="margin:8px 0 0;font-size:12px;color:#888;">
                 Kui nupp ei tööta, kopeeri link brauserisse:<br>
-                <a href="{{ $invoiceUrl }}" style="color:#2563eb;word-break:break-all;">{{ $invoiceUrl }}</a>
+                <a href="{{ $invoiceUrl }}" style="color:#5c285c;word-break:break-all;">{{ $invoiceUrl }}</a>
             </p>
         </td>
     </tr>
