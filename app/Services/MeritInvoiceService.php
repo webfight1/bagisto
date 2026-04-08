@@ -173,8 +173,23 @@ class MeritInvoiceService
 
         // Use billing address, but fallback to shipping address for street if billing is empty
         $streetAddress = $cleanAddr($billingAddress->address ?? $billingAddress->address1 ?? '');
+        
+        Log::info('Merit: Address resolution', [
+            'order_id' => $order->id,
+            'billing_address' => $billingAddress->address ?? null,
+            'billing_address1' => $billingAddress->address1 ?? null,
+            'billing_cleaned' => $streetAddress,
+            'has_shipping' => (bool) $shippingAddress,
+            'shipping_address' => $shippingAddress ? ($shippingAddress->address ?? null) : null,
+            'shipping_address1' => $shippingAddress ? ($shippingAddress->address1 ?? null) : null,
+        ]);
+        
         if (empty($streetAddress) && $shippingAddress) {
             $streetAddress = $cleanAddr($shippingAddress->address ?? $shippingAddress->address1 ?? '');
+            Log::info('Merit: Using shipping address', [
+                'order_id' => $order->id,
+                'final_street' => $streetAddress,
+            ]);
         }
 
         $customerData = [
