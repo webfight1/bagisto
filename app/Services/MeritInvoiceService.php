@@ -192,6 +192,17 @@ class MeritInvoiceService
             ]);
         }
 
+        // Combine street with city and county for Merit API (they expect full address in Address field)
+        // Format: "Street, City, County" (e.g., "Taara 4, Võru linn, Võru")
+        $city = $cleanAddr($billingAddress->city ?? '');
+        $fullAddress = $streetAddress;
+        if (!empty($streetAddress) && !empty($city)) {
+            $fullAddress = $streetAddress . ', ' . $city;
+            if (!empty($county)) {
+                $fullAddress .= ', ' . $county;
+            }
+        }
+
         $customerData = [
             'Name' => $customerName,
             'RegNo' => '', // Not available in current schema
@@ -200,10 +211,10 @@ class MeritInvoiceService
             'CurrencyCode' => config('merit-invoice.invoice.currency_code', 'EUR'),
             'PaymentDeadLine' => config('merit-invoice.invoice.payment_deadline', 7),
             'OverDueCharge' => 0,
-            'Address' => $streetAddress,
+            'Address' => $fullAddress,
             'CountryCode' => $countryCode,
             'County' => $county,
-            'City' => $cleanAddr($billingAddress->city ?? ''),
+            'City' => $city,
             'PostalCode' => $cleanAddr($billingAddress->postcode ?? ''),
             'PhoneNo' => $cleanAddr($billingAddress->phone ?? ''),
             'Email' => $billingAddress->email ?? $order->customer_email ?? '',
