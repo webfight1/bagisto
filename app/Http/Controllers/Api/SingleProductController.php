@@ -162,6 +162,12 @@ class SingleProductController extends Controller
                     }
                 }
 
+                // Get variant inventory
+                $variantInventory = DB::table('product_inventory_indices')
+                    ->where('product_id', $pid)
+                    ->where('channel_id', 1)
+                    ->value('qty') ?? 0;
+
                 $variants[] = [
                     'id' => $pid,
                     'name' => $base->name,
@@ -169,6 +175,7 @@ class SingleProductController extends Controller
                     'price' => $base->price,
                     'special_price' => $base->special_price,
                     'url_key' => $base->url_key,
+                    'inventory' => $variantInventory,
                     'images' => $variantImages->toArray(),
                     'attributes' => array_values($varAttrsGrouped),
                     'translations' => $data['translations'] ?? []
@@ -274,6 +281,12 @@ class SingleProductController extends Controller
         // Get prices from product_attribute_values (the correct source)
         $prices = $this->getProductPrices($product->product_id);
 
+        // Get inventory/stock for the product
+        $inventory = DB::table('product_inventory_indices')
+            ->where('product_id', $product->product_id)
+            ->where('channel_id', 1) // Default channel
+            ->value('qty') ?? 0;
+
         return response()->json([
             'id' => $product->product_id,
             'name' => $product->name,
@@ -286,6 +299,7 @@ class SingleProductController extends Controller
             'short_description' => $product->short_description,
             'meta_title' => $product->meta_title,
             'meta_description' => $product->meta_description,
+            'inventory' => $inventory,
             'images' => $images,
             'videos' => $videos,
             'attributes' => $attributes,
