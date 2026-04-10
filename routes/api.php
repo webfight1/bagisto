@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AttributeProductController;
 use App\Http\Controllers\Api\CategoryProductController;
 use App\Http\Controllers\Api\GuestCartController;
+use App\Http\Controllers\Api\CustomerCheckoutController;
 use App\Http\Controllers\Api\GuestCheckoutController;
 use App\Http\Controllers\Api\DpdController;
 use App\Http\Controllers\Api\OmnivaController;
@@ -15,6 +16,9 @@ use App\Http\Controllers\Api\ProductPopularityController;
 use Webkul\Esto\Http\Controllers\EstoWebhookController;
 use Webkul\Shop\Http\Controllers\API\ProductController;
 use Webkul\Shop\Http\Controllers\API\ReviewController;
+
+// Override vendor customer checkout save-address (fix: save addresses before collecting rates)
+Route::middleware('auth:sanctum')->post('/v1/customer/checkout/save-address', [CustomerCheckoutController::class, 'saveAddress']);
 
 Route::prefix('attribute')->group(function () {
     Route::get('/brand/{value}', [AttributeProductController::class, 'byBrand']);
