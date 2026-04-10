@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\Api\CustomerCheckoutController;
 use App\Listeners\CreateMeritInvoice;
 use Barryvdh\Debugbar\Facades\Debugbar;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,6 +19,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Register before vendor REST API routes so this takes precedence
+        // over the vendor's CheckoutController which calls Shipping::collectRates()
+        // before saving the address (causes abort(400) on fresh carts).
+        // Middleware mirrors vendor's full stack: RestApiServiceProvider + shop.php + customers-routes.php
+        Route::prefix('api')
+            ->middleware(['api', 'etag', 'sanctum.locale', 'sanctum.currency', 'auth:sanctum', 'sanctum.customer'])
+            ->post('v1/customer/checkout/save-address', [CustomerCheckoutController::class, 'saveAddress']);
+
         $allowedIPs = array_map('trim', explode(',', config('app.debug_allowed_ips')));
 
         $allowedIPs = array_filter($allowedIPs);
