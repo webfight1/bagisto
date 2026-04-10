@@ -16,6 +16,13 @@ class CustomerCheckoutController extends Controller
 {
     public function saveAddress(Request $request): JsonResponse|JsonResource
     {
+        // Sanctum authenticates via its own guard; Cart::initCart() uses the default
+        // 'customer' guard (session-based) which returns null for token requests.
+        // Re-initialize the cart explicitly with the sanctum-authenticated user.
+        if ($customer = $request->user()) {
+            Cart::initCart($customer);
+        }
+
         if (Cart::hasError()) {
             $errors = Cart::getErrors();
             return (new JsonResource([
