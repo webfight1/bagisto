@@ -12,15 +12,15 @@ class DisableStorefront
     {
         // Allow GraphQL and GraphiQL endpoints
         $allowedPaths = [
-            '/graphql', 
-            '/graphiql', 
-            '/api/docs', 
-            '/api/v1/*',
-            '/shop/api/*',
+            'graphql',
+            'graphiql',
+            'api/docs',
+            'api/v1/*',
+            'shop/api/*',
             'customer/reset-password/*',
             'customer/forgot-password',
             'customer/login',
-            'customer/register'
+            'customer/register',
         ];
         
         foreach ($allowedPaths as $path) {
