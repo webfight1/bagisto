@@ -85,13 +85,10 @@ class Validator
                         return;
                     }
 
-                    // Return the full shipping method name for comparison
-                    // Get the selected shipping rate to access the carrier title
                     if ($cart->selected_shipping_rate) {
-                        return $cart->selected_shipping_rate->carrier_title;
+                        return $cart->selected_shipping_rate->carrier;
                     }
 
-                    // Fallback to old behavior if no selected rate
                     $shippingChunks = explode('_', $cart->shipping_method);
                     return current($shippingChunks);
                 } elseif ($attributeCode == 'payment_method') {
