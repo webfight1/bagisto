@@ -17,8 +17,11 @@ class CustomerCheckoutController extends Controller
     public function saveAddress(Request $request): JsonResponse|JsonResource
     {
         if (Cart::hasError()) {
+            $errors = Cart::getErrors();
             return (new JsonResource([
-                'message' => 'Cart has errors',
+                'message'    => $errors['message'] ?? 'Cart has errors',
+                'error_code' => $errors['error_code'] ?? 'UNKNOWN',
+                'cart'       => Cart::getCart() ? 'found' : 'null',
             ]))->response()->setStatusCode(Response::HTTP_BAD_REQUEST);
         }
 
