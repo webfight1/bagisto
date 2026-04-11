@@ -316,7 +316,7 @@ class MeritInvoiceService
             // Use the final price after discounts (item->total / qty)
             // This ensures per-unit price reflects any applied discounts
             $itemQty = $item->qty_ordered;
-            $itemTotalWithDiscount = $item->total; // Already includes discount
+            $itemTotalWithDiscount = $item->total - ($item->discount_amount ?? 0);
             $pricePerUnit = $itemQty > 0 ? round((float) $itemTotalWithDiscount / (float) $itemQty, 2) : 0;
 
             $invoiceRows[] = [
