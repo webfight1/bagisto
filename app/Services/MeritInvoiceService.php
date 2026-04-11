@@ -317,7 +317,7 @@ class MeritInvoiceService
             // This ensures per-unit price reflects any applied discounts
             $itemQty = $item->qty_ordered;
             $itemTotalWithDiscount = $item->total; // Already includes discount
-            $pricePerUnit = $itemQty > 0 ? (float) sprintf('%.2f', $itemTotalWithDiscount / $itemQty) : 0;
+            $pricePerUnit = $itemQty > 0 ? round((float) $itemTotalWithDiscount / (float) $itemQty, 2) : 0;
 
             $invoiceRows[] = [
                 'Item' => [
@@ -354,8 +354,8 @@ class MeritInvoiceService
         }
 
         // Use order's grand_total which already includes discounts
-        $orderTotal = (float) sprintf('%.2f', $order->grand_total);
-        $orderTaxAmount = (float) sprintf('%.2f', $order->tax_amount);
+        $orderTotal = round((float) $order->grand_total, 2);
+        $orderTaxAmount = round((float) $order->tax_amount, 2);
 
         // Prepare invoice data
         // Get next invoice number from Merit API
@@ -421,12 +421,11 @@ class MeritInvoiceService
         ]);
 
         // Send to Merit API
-        // Set precision to avoid float representation issues
-        ini_set('serialize_precision', '2');
-        ini_set('precision', '14');
+        // serialize_precision=-1 uses minimum digits needed (e.g. 24.2 not 24.199999...)
+        $origSerializePrecision = ini_get('serialize_precision');
+        ini_set('serialize_precision', -1);
         $httpBody = json_encode($invoiceData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        ini_restore('serialize_precision');
-        ini_restore('precision');
+        ini_set('serialize_precision', $origSerializePrecision);
         
         $timestamp = $this->getTimestamp();
         $signature = $this->createSignature($this->apiId, $timestamp, $httpBody);
