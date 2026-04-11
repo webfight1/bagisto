@@ -311,16 +311,13 @@ class MeritInvoiceService
 
         // Prepare invoice rows from order items
         $invoiceRows = [];
-        $calculatedTotal = 0;
 
         foreach ($order->items as $item) {
-            $itemPrice = $item->price;
+            // Use the final price after discounts (item->total / qty)
+            // This ensures per-unit price reflects any applied discounts
             $itemQty = $item->qty_ordered;
-
-            // Force proper float precision by converting through string
-            $roundedPrice = round((float) $itemPrice, 2);
-            $lineTotal = round($roundedPrice * $itemQty, 2);
-            $calculatedTotal += $lineTotal;
+            $itemTotalWithDiscount = $item->total; // Already includes discount
+            $pricePerUnit = $itemQty > 0 ? round($itemTotalWithDiscount / $itemQty, 2) : 0;
 
             $invoiceRows[] = [
                 'Item' => [
@@ -330,7 +327,7 @@ class MeritInvoiceService
                     'UOMName' => 'tk',
                 ],
                 'Quantity' => (float) $itemQty,
-                'Price' => $roundedPrice,
+                'Price' => $pricePerUnit,
                 'DiscountPct' => 0,
                 'DiscountAmount' => 0.00,
                 'TaxId' => $taxId,
@@ -339,9 +336,7 @@ class MeritInvoiceService
 
         // Add shipping if exists
         if ($order->shipping_amount > 0) {
-            // Force proper float precision by converting through string
             $roundedShipping = round((float) $order->shipping_amount, 2);
-            $calculatedTotal += $roundedShipping;
             
             $invoiceRows[] = [
                 'Item' => [
@@ -358,8 +353,8 @@ class MeritInvoiceService
             ];
         }
 
-        // Use calculated total from invoice rows to ensure exact match
-        $orderTotal = round($calculatedTotal, 2);
+        // Use order's grand_total which already includes discounts
+        $orderTotal = round((float) $order->grand_total, 2);
         $orderTaxAmount = round((float) $order->tax_amount, 2);
 
         // Prepare invoice data
