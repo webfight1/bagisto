@@ -324,7 +324,7 @@ class MeritInvoiceService
 
             $invoiceRows[] = [
                 'Item' => [
-                    'Code' => $item->sku ?? 'ITEM-' . $item->id,
+                    'Code' => substr($item->sku ?? 'ITEM-' . $item->id, 0, 20),
                     'Description' => $item->name,
                     'Type' => 3, // 3 = product
                     'UOMName' => 'tk',
