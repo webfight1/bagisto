@@ -311,16 +311,16 @@ class MeritInvoiceService
 
         // Prepare invoice rows from order items
         $invoiceRows = [];
-        $totalAmount = 0;
+        $calculatedTotal = 0;
 
         foreach ($order->items as $item) {
             $itemPrice = $item->price;
             $itemQty = $item->qty_ordered;
-            $itemTotal = $itemPrice * $itemQty;
-            $totalAmount += $itemTotal;
 
             // Force proper float precision by converting through string
-            $roundedPrice = floatval(sprintf('%.2f', (float) $itemPrice));
+            $roundedPrice = round((float) $itemPrice, 2);
+            $lineTotal = round($roundedPrice * $itemQty, 2);
+            $calculatedTotal += $lineTotal;
 
             $invoiceRows[] = [
                 'Item' => [
@@ -339,10 +339,9 @@ class MeritInvoiceService
 
         // Add shipping if exists
         if ($order->shipping_amount > 0) {
-            $totalAmount += $order->shipping_amount;
-            
             // Force proper float precision by converting through string
-            $roundedShipping = floatval(sprintf('%.2f', (float) $order->shipping_amount));
+            $roundedShipping = round((float) $order->shipping_amount, 2);
+            $calculatedTotal += $roundedShipping;
             
             $invoiceRows[] = [
                 'Item' => [
@@ -359,11 +358,9 @@ class MeritInvoiceService
             ];
         }
 
-        // Use order's grand_total as it already includes everything correctly
-        // Bagisto prices are gross (include tax), so we use the order total directly
-        // Force proper float precision to match invoice rows
-        $orderTotal = floatval(sprintf('%.2f', (float) $order->grand_total));
-        $orderTaxAmount = floatval(sprintf('%.2f', (float) $order->tax_amount));
+        // Use calculated total from invoice rows to ensure exact match
+        $orderTotal = round($calculatedTotal, 2);
+        $orderTaxAmount = round((float) $order->tax_amount, 2);
 
         // Prepare invoice data
         // Get next invoice number from Merit API
