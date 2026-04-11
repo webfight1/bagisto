@@ -317,7 +317,7 @@ class MeritInvoiceService
             // This ensures per-unit price reflects any applied discounts
             $itemQty = $item->qty_ordered;
             $itemTotalWithDiscount = $item->total; // Already includes discount
-            $pricePerUnit = $itemQty > 0 ? round($itemTotalWithDiscount / $itemQty, 2) : 0;
+            $pricePerUnit = $itemQty > 0 ? (float) sprintf('%.2f', $itemTotalWithDiscount / $itemQty) : 0;
 
             $invoiceRows[] = [
                 'Item' => [
@@ -327,7 +327,7 @@ class MeritInvoiceService
                     'UOMName' => 'tk',
                 ],
                 'Quantity' => (float) $itemQty,
-                'Price' => $pricePerUnit,
+                'Price' => (float) sprintf('%.2f', $pricePerUnit),
                 'DiscountPct' => 0,
                 'DiscountAmount' => 0.00,
                 'TaxId' => $taxId,
@@ -336,7 +336,7 @@ class MeritInvoiceService
 
         // Add shipping if exists
         if ($order->shipping_amount > 0) {
-            $roundedShipping = round((float) $order->shipping_amount, 2);
+            $roundedShipping = (float) sprintf('%.2f', $order->shipping_amount);
             
             $invoiceRows[] = [
                 'Item' => [
@@ -346,7 +346,7 @@ class MeritInvoiceService
                     'UOMName' => 'tk',
                 ],
                 'Quantity' => 1.0,
-                'Price' => $roundedShipping,
+                'Price' => (float) sprintf('%.2f', $roundedShipping),
                 'DiscountPct' => 0,
                 'DiscountAmount' => 0.00,
                 'TaxId' => $taxId,
@@ -354,8 +354,8 @@ class MeritInvoiceService
         }
 
         // Use order's grand_total which already includes discounts
-        $orderTotal = round((float) $order->grand_total, 2);
-        $orderTaxAmount = round((float) $order->tax_amount, 2);
+        $orderTotal = (float) sprintf('%.2f', $order->grand_total);
+        $orderTaxAmount = (float) sprintf('%.2f', $order->tax_amount);
 
         // Prepare invoice data
         // Get next invoice number from Merit API
@@ -402,12 +402,12 @@ class MeritInvoiceService
             'InvoiceNo' => $invoiceNo,
             'CurrencyCode' => config('merit-invoice.invoice.currency_code', 'EUR'),
             'InvoiceRow' => $invoiceRows,
-            'TotalAmount' => round($orderTotal, 2),
+            'TotalAmount' => (float) sprintf('%.2f', $orderTotal),
             'RoundingAmount' => 0.00,
             'TaxAmount' => [
                 [
                     'TaxId' => $taxId,
-                    'Amount' => round($orderTaxAmount, 2),
+                    'Amount' => (float) sprintf('%.2f', $orderTaxAmount),
                 ],
             ],
             'Hcomment' => 'Order #' . $order->increment_id,
