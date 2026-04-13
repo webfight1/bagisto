@@ -7,10 +7,12 @@ use App\Listeners\CreateMeritInvoice;
 use Barryvdh\Debugbar\Facades\Debugbar;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Opcodes\LogViewer\Facades\LogViewer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -47,6 +49,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        LogViewer::auth(function ($request) {
+            $allowed = array_filter(array_map('trim', explode(',', env('LOG_VIEWER_ALLOWED_IPS', ''))));
+            return in_array($request->ip(), $allowed);
+        });
         ParallelTesting::setUpTestDatabase(function (string $database, int $token) {
             Artisan::call('db:seed');
         });
