@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SmartpostFiController;
 use App\Http\Controllers\Api\SmartpostController;
 use App\Http\Controllers\Api\SingleProductController;
+use App\Http\Controllers\Api\SitemapController;
 use App\Http\Controllers\Api\ProductPopularityController;
 use Webkul\Esto\Http\Controllers\EstoWebhookController;
 use Webkul\Shop\Http\Controllers\API\ProductController;
@@ -44,6 +45,9 @@ Route::get('/esto/order-by-reference/{reference}', [\App\Http\Controllers\Api\Es
 
 // Categories list
 Route::get('/v1/category', [CategoryProductController::class, 'categories']);
+
+// Public sitemap data for WordPress
+Route::get('/v1/sitemap', [SitemapController::class, 'index']);
 
 // Guest cart (token-based)
 Route::prefix('v1/guest')->group(function () {
