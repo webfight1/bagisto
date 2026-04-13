@@ -207,6 +207,9 @@ class GuestCheckoutController extends Controller
         }
 
         // Save parcel locker if provided
+        $isParcelLockerMethod = str_contains($validated['shipping_method'], 'omniva')
+            || str_contains($validated['shipping_method'], 'smartpost');
+
         if (isset($validated['parcel_locker']) && !empty($validated['parcel_locker'])) {
             $carrier = null;
             if (str_contains($validated['shipping_method'], 'omniva')) {
@@ -219,8 +222,10 @@ class GuestCheckoutController extends Controller
                 ['cart_id' => $cart->id],
                 array_merge($validated['parcel_locker'], ['carrier' => $carrier])
             );
-        } else {
-            // Remove parcel locker if shipping method changed to non-locker method
+        } elseif (! $isParcelLockerMethod) {
+            // Only delete when switching to a non-parcel-locker method (e.g. courier/flat rate).
+            // Do NOT delete when the method IS a parcel locker method but the locker wasn't sent yet
+            // (user may still be selecting it on the frontend).
             \App\Models\CartParcelLocker::where('cart_id', $cart->id)->delete();
         }
 
