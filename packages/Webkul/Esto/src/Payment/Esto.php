@@ -2,8 +2,10 @@
 
 namespace Webkul\Esto\Payment;
 
+use App\Services\MeritInvoiceService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Webkul\Payment\Payment\Payment;
 
@@ -42,7 +44,45 @@ class Esto extends Payment
         }
 
         $amount = round((float) $cart->grand_total, 2);
+
+        // If Merit invoice integration is enabled, pre-reserve the next invoice number
+        // and use it as the Esto reference so it appears in the bank transfer description,
+        // allowing Merit to match the payment to the invoice.
+        // Falls back to the cart-based reference when Merit is disabled.
         $reference = $this->makeReference($cart->id);
+
+        if (config('merit-invoice.enabled', false)) {
+            try {
+                $meritService = app(MeritInvoiceService::class);
+                $reservedNo   = $meritService->getNextInvoiceNumber();
+
+                if ($reservedNo) {
+                    Cache::put(
+                        $meritService->reservedInvoiceCacheKey($cart->id),
+                        $reservedNo,
+                        now()->addHours(24)
+                    );
+                    // Reverse lookup: invoice number → cart ID (for webhook handler)
+                    Cache::put(
+                        'esto:cart_for_invoice:' . $reservedNo,
+                        $cart->id,
+                        now()->addHours(24)
+                    );
+                    $reference = $reservedNo;
+
+                    Log::info('Esto: reserved Merit invoice number', [
+                        'cart_id'    => $cart->id,
+                        'invoice_no' => $reservedNo,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Merit unavailable — fall back to cart reference silently.
+                Log::warning('Esto: could not reserve Merit invoice number, using cart reference', [
+                    'cart_id' => $cart->id,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
+        }
 
         // Always use the production API endpoint.
         // Sandbox/test mode is controlled by the connection_mode parameter per

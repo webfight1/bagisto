@@ -16,12 +16,14 @@ class MeritInvoice extends Model
         'invoice_no',
         'pdf_path',
         'status',
+        'paid_at',
         'merit_response',
         'error_message',
     ];
 
     protected $casts = [
         'merit_response' => 'array',
+        'paid_at'        => 'datetime',
     ];
 
     /**

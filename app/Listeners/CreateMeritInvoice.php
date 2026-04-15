@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Mail\MeritInvoiceGenerated;
 use App\Models\MeritInvoice;
 use App\Services\MeritInvoiceService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -81,9 +82,23 @@ class CreateMeritInvoice
             ]);
         }
 
+        // Check for a pre-reserved invoice number (set during Esto checkout).
+        $reservedInvoiceNo = null;
+        if ($order->cart_id) {
+            $cacheKey          = $this->meritService->reservedInvoiceCacheKey($order->cart_id);
+            $reservedInvoiceNo = Cache::get($cacheKey);
+            if ($reservedInvoiceNo) {
+                Cache::forget($cacheKey);
+                Log::info('Merit listener: using pre-reserved invoice number', [
+                    'order_id'   => $order->id,
+                    'invoice_no' => $reservedInvoiceNo,
+                ]);
+            }
+        }
+
         try {
             // Create invoice in Merit
-            $result = $this->meritService->createInvoice($order);
+            $result = $this->meritService->createInvoice($order, $reservedInvoiceNo);
 
             if (!$result) {
                 $meritInvoice->update([
@@ -128,6 +143,37 @@ class CreateMeritInvoice
                 'error_message' => null,
                 'merit_response' => $result,
             ]);
+
+            // For Esto orders: payment is already confirmed — mark invoice as paid in Merit.
+            if ($order->payment && $order->payment->method === 'esto') {
+                $billingAddress = $order->addresses()->where('address_type', 'order_billing')->first();
+                $customerName   = $billingAddress
+                    ? ($billingAddress->company_name ?: trim($billingAddress->first_name . ' ' . $billingAddress->last_name))
+                    : ($order->customer_first_name . ' ' . $order->customer_last_name);
+
+                $estoRef = $order->payment->additional['esto']['reference'] ?? '';
+
+                $paid = $this->meritService->sendPayment(
+                    invoiceNo:    $invoiceNo,
+                    customerName: $customerName,
+                    amount:       round((float) $order->grand_total, 2),
+                    paymentDate:  gmdate('Ymd'),
+                    refNo:        $estoRef,
+                );
+
+                if ($paid) {
+                    $meritInvoice->update(['paid_at' => now()]);
+                    Log::info('Merit invoice marked as paid via sendPayment', [
+                        'order_id'   => $order->id,
+                        'invoice_no' => $invoiceNo,
+                    ]);
+                } else {
+                    Log::warning('Merit sendPayment failed after invoice creation', [
+                        'order_id'   => $order->id,
+                        'invoice_no' => $invoiceNo,
+                    ]);
+                }
+            }
 
             if ($pdfPath) {
                 // Generate URL via the public disk so it matches where the file was saved.

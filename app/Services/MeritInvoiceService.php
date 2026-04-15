@@ -181,8 +181,12 @@ class MeritInvoiceService
 
     /**
      * Create invoice in Merit for an order
+     *
+     * @param Order       $order
+     * @param string|null $reservedInvoiceNo Pre-reserved invoice number (e.g. from Esto flow).
+     *                                       If null, the next number is fetched from Merit API.
      */
-    public function createInvoice(Order $order): ?array
+    public function createInvoice(Order $order, ?string $reservedInvoiceNo = null): ?array
     {
         Log::info('Creating Merit invoice for order', ['order_id' => $order->id]);
 
@@ -358,12 +362,19 @@ class MeritInvoiceService
         $orderTaxAmount = round((float) $order->tax_amount, 2);
 
         // Prepare invoice data
-        // Get next invoice number from Merit API
-        $invoiceNo = $this->getNextInvoiceNumber();
-        if (!$invoiceNo) {
-            Log::error('Failed to get next invoice number from Merit', ['order_id' => $order->id]);
-            // Fallback to old method
-            $invoiceNo = config('merit-invoice.invoice.number_prefix', 'ORDER-') . $order->increment_id;
+        // Use pre-reserved invoice number (Esto flow) or fetch next from Merit API.
+        if ($reservedInvoiceNo) {
+            $invoiceNo = $reservedInvoiceNo;
+            Log::info('Merit: using pre-reserved invoice number', [
+                'order_id'   => $order->id,
+                'invoice_no' => $invoiceNo,
+            ]);
+        } else {
+            $invoiceNo = $this->getNextInvoiceNumber();
+            if (!$invoiceNo) {
+                Log::error('Failed to get next invoice number from Merit', ['order_id' => $order->id]);
+                $invoiceNo = config('merit-invoice.invoice.number_prefix', 'ORDER-') . $order->increment_id;
+            }
         }
         
         $now = $this->getTimestamp();
@@ -463,6 +474,84 @@ class MeritInvoiceService
                 'message' => $e->getMessage(),
             ]);
             return null;
+        }
+    }
+
+    /**
+     * Cache key for a pre-reserved Merit invoice number tied to a cart.
+     */
+    public function reservedInvoiceCacheKey(int $cartId): string
+    {
+        return 'merit:reserved_invoice:cart-' . $cartId;
+    }
+
+    /**
+     * Send payment for a sales invoice to Merit API (/v1/sendpayment).
+     * Called immediately after invoice creation for Esto orders (payment already confirmed).
+     *
+     * @param string $invoiceNo    Merit invoice number (from merit_invoices.invoice_no)
+     * @param string $customerName Payer name
+     * @param float  $amount       Payment amount
+     * @param string $paymentDate  Date in 'Ymd' format, e.g. '20260415'
+     * @param string $refNo        Reference / Esto reference (optional, informational)
+     */
+    public function sendPayment(
+        string $invoiceNo,
+        string $customerName,
+        float $amount,
+        string $paymentDate,
+        string $refNo = ''
+    ): bool {
+        $payload = [
+            'InvoiceNo'    => $invoiceNo,
+            'CustomerName' => $customerName,
+            'PaymentDate'  => $paymentDate,
+            'Amount'       => round($amount, 2),
+            'RefNo'        => $refNo,
+        ];
+
+        $httpBody  = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $timestamp = $this->getTimestamp();
+        $signature = $this->createSignature($this->apiId, $timestamp, $httpBody);
+
+        $url = $this->baseUrl . '/sendpayment';
+
+        Log::info('Merit sendPayment request', [
+            'invoice_no' => $invoiceNo,
+            'amount'     => $amount,
+            'payload'    => $payload,
+        ]);
+
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->withQueryParameters([
+                'apiId'     => $this->apiId,
+                'timestamp' => $timestamp,
+                'signature' => $signature,
+            ])->withBody($httpBody, 'application/json')->post($url);
+
+            if ($response->successful()) {
+                Log::info('Merit sendPayment success', [
+                    'invoice_no' => $invoiceNo,
+                    'response'   => $response->body(),
+                ]);
+                return true;
+            }
+
+            Log::error('Merit sendPayment failed', [
+                'invoice_no' => $invoiceNo,
+                'status'     => $response->status(),
+                'body'       => $response->body(),
+            ]);
+
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Merit sendPayment exception', [
+                'invoice_no' => $invoiceNo,
+                'message'    => $e->getMessage(),
+            ]);
+            return false;
         }
     }
 

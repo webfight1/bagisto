@@ -101,14 +101,20 @@ class EstoWebhookController
         }
 
         // ------------------------------------------------------------------
-        // 6. Extract cart ID from reference (cart-123-xxxx)
+        // 6. Extract cart ID from reference.
+        // Two formats are supported:
+        //   a) Legacy:  "cart-123-timestamp-random"  → cart ID extracted via regex
+        //   b) Merit:   "1000132" (invoice number)   → cart ID looked up from cache
         // ------------------------------------------------------------------
-        if (! preg_match('/^cart-(\d+)-/', $reference, $m)) {
-            $this->storeWebhook($reference, null, $status, $amount, $currency, $payload);
-            return response()->json(['message' => 'Invalid reference'], 422);
+        if (preg_match('/^cart-(\d+)-/', $reference, $m)) {
+            $cartId = (int) $m[1];
+        } else {
+            $cartId = (int) \Illuminate\Support\Facades\Cache::get('esto:cart_for_invoice:' . $reference);
+            if (! $cartId) {
+                $this->storeWebhook($reference, null, $status, $amount, $currency, $payload);
+                return response()->json(['message' => 'Invalid reference'], 422);
+            }
         }
-
-        $cartId = (int) $m[1];
 
         // ------------------------------------------------------------------
         // 7. Existing order?
