@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use Webkul\Checkout\Facades\Cart;
 use Webkul\Checkout\Repositories\CartRepository;
 use Webkul\Payment\Facades\Payment;
@@ -208,7 +209,8 @@ class GuestCheckoutController extends Controller
 
         // Save parcel locker if provided
         $isParcelLockerMethod = str_contains($validated['shipping_method'], 'omniva')
-            || str_contains($validated['shipping_method'], 'smartpost');
+            || str_contains($validated['shipping_method'], 'smartpost')
+            || str_contains($validated['shipping_method'], 'dpd');
 
         if (isset($validated['parcel_locker']) && !empty($validated['parcel_locker'])) {
             $carrier = null;
@@ -216,16 +218,27 @@ class GuestCheckoutController extends Controller
                 $carrier = 'omniva';
             } elseif (str_contains($validated['shipping_method'], 'smartpost')) {
                 $carrier = 'smartpost';
+            } elseif (str_contains($validated['shipping_method'], 'dpd')) {
+                $carrier = 'dpd';
             }
 
+            $parcelLockerData = array_merge($validated['parcel_locker'], ['carrier' => $carrier]);
+            
             \App\Models\CartParcelLocker::updateOrCreate(
                 ['cart_id' => $cart->id],
-                array_merge($validated['parcel_locker'], ['carrier' => $carrier])
+                $parcelLockerData
             );
+            
+            Log::info('Parcel locker selected', [
+                'cart_id' => $cart->id,
+                'carrier' => $carrier,
+                'locker_id' => $parcelLockerData['locker_id'] ?? null,
+                'locker_name' => $parcelLockerData['locker_name'] ?? null,
+                'locker_address' => $parcelLockerData['locker_address'] ?? null,
+                'locker_city' => $parcelLockerData['locker_city'] ?? null,
+            ]);
         } elseif (! $isParcelLockerMethod) {
             // Only delete when switching to a non-parcel-locker method (e.g. courier/flat rate).
-            // Do NOT delete when the method IS a parcel locker method but the locker wasn't sent yet
-            // (user may still be selecting it on the frontend).
             \App\Models\CartParcelLocker::where('cart_id', $cart->id)->delete();
         }
 
