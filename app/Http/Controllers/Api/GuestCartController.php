@@ -15,6 +15,7 @@ use Webkul\Shop\Http\Resources\CartResource;
 
 class GuestCartController extends Controller
 {
+    
     public function __construct(
         protected CartRepository $cartRepository,
         protected ProductRepository $productRepository,
