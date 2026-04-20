@@ -44,6 +44,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Payment Settings
+    |--------------------------------------------------------------------------
+    |
+    | Bank IBAN for registering payments (sendPayment endpoint).
+    | Without an IBAN, Merit places the payment in the cash register.
+    |
+    */
+    'payment' => [
+        'bank_iban' => env('MERIT_BANK_IBAN', ''),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | PDF Storage
     |--------------------------------------------------------------------------
     |

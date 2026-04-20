@@ -510,6 +510,17 @@ class MeritInvoiceService
             'RefNo'        => $refNo,
         ];
 
+        // Include IBAN so Merit registers the payment against the bank account
+        // instead of the cash register (default when IBAN is missing).
+        $bankIban = config('merit-invoice.payment.bank_iban');
+        if (!empty($bankIban)) {
+            $payload['IBAN'] = $bankIban;
+        } else {
+            Log::warning('Merit sendPayment: MERIT_BANK_IBAN not configured, payment will be placed in cash register', [
+                'invoice_no' => $invoiceNo,
+            ]);
+        }
+
         $httpBody  = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $timestamp = $this->getTimestamp();
         $signature = $this->createSignature($this->apiId, $timestamp, $httpBody);
