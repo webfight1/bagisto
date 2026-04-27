@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CategoryProductController;
 use App\Http\Controllers\Api\GuestCartController;
 use App\Http\Controllers\Api\CustomerCheckoutController;
 use App\Http\Controllers\Api\GuestCheckoutController;
+use App\Http\Controllers\Api\CartParcelLockerController;
 use App\Http\Controllers\Api\DpdController;
 use App\Http\Controllers\Api\OmnivaController;
 use App\Http\Controllers\Api\SearchController;
@@ -20,6 +21,11 @@ use Webkul\Shop\Http\Controllers\API\ReviewController;
 
 // Override vendor customer checkout save-address (fix: save addresses before collecting rates)
 Route::middleware('auth:sanctum')->post('/v1/customer/checkout/save-address', [CustomerCheckoutController::class, 'saveAddress']);
+
+// Verify-endpoint for the parcel locker currently saved on the cart. Called
+// by the WP frontend right before placeOrder as a safety gate so that an
+// order is never placed without a confirmed pickup location.
+Route::middleware('auth:sanctum')->get('/v1/customer/checkout/parcel-locker', [CartParcelLockerController::class, 'showForCustomer']);
 
 Route::prefix('attribute')->group(function () {
     Route::get('/brand/{value}', [AttributeProductController::class, 'byBrand']);
@@ -68,6 +74,11 @@ Route::prefix('v1/guest')->group(function () {
         Route::post('/payment-method', [GuestCheckoutController::class, 'storePaymentMethod']);
         Route::get('/payment-status', [GuestCheckoutController::class, 'paymentStatus']);
         Route::post('/place-order', [GuestCheckoutController::class, 'placeOrder']);
+
+        // Verify endpoint — returns the locker currently persisted on the
+        // guest cart (resolved via X-Cart-Token). Called by WP right before
+        // placeOrder as a safety gate.
+        Route::get('/parcel-locker', [CartParcelLockerController::class, 'showForGuest']);
     });
 });
 
