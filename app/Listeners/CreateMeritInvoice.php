@@ -153,6 +153,9 @@ class CreateMeritInvoice
 
                 $estoRef = $order->payment->additional['esto']['reference'] ?? '';
 
+                // Give Merit API time to persist the invoice before registering payment
+                sleep(2);
+
                 $paid = $this->meritService->sendPayment(
                     invoiceNo:    $invoiceNo,
                     customerName: $customerName,
