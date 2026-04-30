@@ -1268,7 +1268,7 @@ return [
                 'greeting' => 'Your order :order_id placed on :created_at has been shipped',
                 'subject'  => 'New Shipment Confirmation',
                 'summary'  => 'Summary of Shipment 2',
-                'title'    => 'Order Shipped!',
+                'title'    => 'Tellimus saadetud!3',
             ],
 
             'refunded' => [

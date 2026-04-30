@@ -5084,14 +5084,14 @@ return [
                 'greeting' => 'You have shipped the order :order_id placed on :created_at',
                 'subject'  => 'New Shipment Confirmation',
                 'summary'  => 'Summary of Shipment',
-                'title'    => 'Order Shipped!',
+                'title'    => 'Tellimus saadetud!',
             ],
 
             'inventory-source' => [
                 'greeting' => 'You have shipped the order :order_id placed on :created_at',
                 'subject'  => 'New Shipment Confirmation',
                 'summary'  => 'Summary of Shipment',
-                'title'    => 'Order Shipped!',
+                'title'    => 'Tellimus saadetud!',
             ],
 
             'refunded' => [
