@@ -30,10 +30,14 @@ class ProductPopularityController extends Controller
         }
 
         $products = ProductFlat::query()
-            ->leftJoin('product_images', 'product_images.product_id', '=', 'product_flat.product_id')
+            ->leftJoin('product_images', function ($join) {
+                $join->on('product_images.product_id', '=', 'product_flat.product_id')
+                    ->whereRaw('product_images.id = (SELECT MIN(pi2.id) FROM product_images pi2 WHERE pi2.product_id = product_flat.product_id)');
+            })
             ->whereIn('product_flat.product_id', $popularProductIds)
             ->where('product_flat.status', 1)
             ->where('product_flat.visible_individually', 1)
+            ->where('product_flat.locale', 'et')
             ->select([
                 'product_flat.id',
                 'product_flat.product_id',
@@ -44,16 +48,6 @@ class ProductPopularityController extends Controller
                 'product_flat.url_key',
                 'product_images.path as image_path',
             ])
-            ->groupBy(
-                'product_flat.id',
-                'product_flat.product_id',
-                'product_flat.sku',
-                'product_flat.name',
-                'product_flat.short_description',
-                'product_flat.price',
-                'product_flat.url_key',
-                'product_images.path'
-            )
             ->get()
             ->sortByDesc(fn ($product) => $popularProductTotals[$product->product_id] ?? 0)
             ->values()
