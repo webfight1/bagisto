@@ -9,15 +9,16 @@ use Webkul\Product\Models\ProductFlat;
 
 class ProductPopularityController extends Controller
 {
-    public function index(Request $request, $minQty = 20)
+    public function index(Request $request, $limit = 10)
     {
-        $minQty = (int) $minQty;
+        $limit = max(1, min((int) $limit, 100));
 
         $popularProductTotals = DB::table('order_items')
             ->join('products', 'products.id', '=', 'order_items.product_id')
             ->select(DB::raw('COALESCE(products.parent_id, products.id) as popular_product_id'), DB::raw('SUM(order_items.qty_ordered) as total_qty'))
             ->groupBy('popular_product_id')
-            ->having('total_qty', '>=', $minQty)
+            ->orderByDesc('total_qty')
+            ->limit($limit)
             ->pluck('total_qty', 'popular_product_id')
             ->map(fn ($qty) => (int) $qty)
             ->toArray();
@@ -54,6 +55,8 @@ class ProductPopularityController extends Controller
                 'product_images.path'
             )
             ->get()
+            ->sortByDesc(fn ($product) => $popularProductTotals[$product->product_id] ?? 0)
+            ->values()
             ->map(function ($product) use ($popularProductTotals) {
                 return [
                     'id'                => $product->id,

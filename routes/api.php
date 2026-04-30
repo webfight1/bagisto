@@ -33,7 +33,7 @@ Route::prefix('attribute')->group(function () {
     Route::get('/{attribute_code}/{value}', [AttributeProductController::class, 'byAttribute']);
 });
 
-Route::get('/products/popular/{minQty?}', [ProductPopularityController::class, 'index']);
+Route::get('/products/popular/{limit?}', [ProductPopularityController::class, 'index']);
 
 // Single product by slug
 Route::get('/v1/product/{slug}', [SingleProductController::class, 'show']);
