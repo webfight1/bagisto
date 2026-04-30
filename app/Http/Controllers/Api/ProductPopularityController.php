@@ -43,10 +43,11 @@ class ProductPopularityController extends Controller
                 'product_flat.sku',
                 'product_flat.name',
                 'product_flat.short_description',
-                DB::raw('COALESCE(product_flat.price, (SELECT pf2.price FROM product_flat pf2 WHERE pf2.product_id = product_flat.product_id AND pf2.price IS NOT NULL LIMIT 1)) as price'),
+                'product_flat.price',
                 'product_flat.url_key',
                 'product_images.path as image_path',
             ])
+            ->whereNotNull('product_flat.price')
             ->get()
             ->sortByDesc(fn ($product) => $popularProductTotals[$product->product_id] ?? 0)
             ->take($limit)
