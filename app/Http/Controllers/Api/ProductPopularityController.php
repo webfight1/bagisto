@@ -18,7 +18,6 @@ class ProductPopularityController extends Controller
             ->select(DB::raw('COALESCE(products.parent_id, products.id) as popular_product_id'), DB::raw('SUM(order_items.qty_ordered) as total_qty'))
             ->groupBy('popular_product_id')
             ->orderByDesc('total_qty')
-            ->limit($limit)
             ->pluck('total_qty', 'popular_product_id')
             ->map(fn ($qty) => (int) $qty)
             ->toArray();
@@ -50,6 +49,7 @@ class ProductPopularityController extends Controller
             ])
             ->get()
             ->sortByDesc(fn ($product) => $popularProductTotals[$product->product_id] ?? 0)
+            ->take($limit)
             ->values()
             ->map(function ($product) use ($popularProductTotals) {
                 return [
