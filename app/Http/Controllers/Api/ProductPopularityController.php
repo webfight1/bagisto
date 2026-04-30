@@ -43,7 +43,7 @@ class ProductPopularityController extends Controller
                 'product_flat.sku',
                 'product_flat.name',
                 'product_flat.short_description',
-                'product_flat.price',
+                DB::raw('COALESCE(product_flat.price, (SELECT pf2.price FROM product_flat pf2 WHERE pf2.product_id = product_flat.product_id AND pf2.price IS NOT NULL LIMIT 1)) as price'),
                 'product_flat.url_key',
                 'product_images.path as image_path',
             ])
