@@ -1010,7 +1010,7 @@ return [
                 'back'                   => 'Back',
                 'billing-address'        => 'Billing Address',
                 'check-billing-address'  => 'Billing address is missing.',
-                'check-shipping-address' => 'Shipping address is missing.',
+                'check-shipping-address' => 'Tarneaadress is missing.',
                 'city'                   => 'City',
                 'company-name'           => 'Company Name',
                 'confirm'                => 'Confirm',
@@ -1025,7 +1025,7 @@ return [
                 'save-address'           => 'Save this to address book',
                 'select-country'         => 'Select Country',
                 'select-state'           => 'Select State',
-                'shipping-address'       => 'Shipping Address',
+                'shipping-address'       => 'Tarneaadress',
                 'state'                  => 'State',
                 'street-address'         => 'Street Address',
                 'telephone'              => 'Telephone',
@@ -1167,8 +1167,8 @@ return [
     ],
 
     'emails' => [
-        'dear'   => 'Dear :customer_name',
-        'thanks' => 'If you need any kind of help please contact us at <a href=":link" style=":style">:email</a>.<br/>Thanks!',
+        'dear'   => 'Kallis :customer_name',
+        'thanks' => 'Kui teil jäi küsimusi kirjutage <a href=":link" style=":style">:email</a>.<br/>Tänud!',
 
         'customers' => [
             'registration' => [
@@ -1265,10 +1265,10 @@ return [
             ],
 
             'shipped' => [
-                'greeting' => 'Your order :order_id placed on :created_at has been shipped',
+                'greeting' => 'Sinu tellimus :order_id placed on :created_at on teele pandud',
                 'subject'  => 'New Shipment Confirmation',
-                'summary'  => 'Summary of Shipment',
-                'title'    => 'Order Shipped!',
+                'summary'  => 'Saadetise kokkuvõte',
+                'title'    => 'Tellimus on teele pandud!',
             ],
 
             'refunded' => [
@@ -1290,17 +1290,17 @@ return [
                 'title'   => 'New comment added to your order :order_id placed on :created_at',
             ],
 
-            'billing-address'            => 'Billing Address',
-            'carrier'                    => 'Carrier',
-            'contact'                    => 'Contact',
+            'billing-address'            => 'Arve aadress',
+            'carrier'                    => 'Kuller',
+            'contact'                    => 'Kontakt',
             'discount'                   => 'Discount',
             'excl-tax'                   => 'Excl. Tax: ',
             'grand-total'                => 'Grand Total',
-            'name'                       => 'Name',
-            'payment'                    => 'Payment',
-            'price'                      => 'Price',
-            'qty'                        => 'Qty',
-            'shipping-address'           => 'Shipping Address',
+            'name'                       => 'Nimi',
+            'payment'                    => 'Makseviis',
+            'price'                      => 'Hind',
+            'qty'                        => 'Kogus',
+            'shipping-address'           => 'Tarneaadress',
             'shipping-handling-excl-tax' => 'Shipping Handling (Excl. Tax)',
             'shipping-handling-incl-tax' => 'Shipping Handling (Incl. Tax)',
             'shipping-handling'          => 'Shipping Handling',
@@ -1310,7 +1310,7 @@ return [
             'subtotal-incl-tax'          => 'Subtotal (Incl. Tax)',
             'subtotal'                   => 'Subtotal',
             'tax'                        => 'Tax',
-            'tracking-number'            => 'Tracking Number : :tracking_number',
+            'tracking-number'            => 'Jälgimisnumber number : :tracking_number',
         ],
     ],
 ];
