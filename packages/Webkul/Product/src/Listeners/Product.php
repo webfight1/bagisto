@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Bus;
 use Webkul\Product\Helpers\Indexers\Flat as FlatIndexer;
 use Webkul\Product\Jobs\ElasticSearch\DeleteIndex as DeleteElasticSearchIndexJob;
 use Webkul\Product\Jobs\ElasticSearch\UpdateCreateIndex as UpdateCreateElasticSearchIndexJob;
+use Webkul\Product\Jobs\RefreshFlatIndex as RefreshFlatIndexJob;
 use Webkul\Product\Jobs\UpdateCreateInventoryIndex as UpdateCreateInventoryIndexJob;
 use Webkul\Product\Jobs\UpdateCreatePriceIndex as UpdateCreatePriceIndexJob;
 use Webkul\Product\Repositories\ProductBundleOptionProductRepository;
@@ -49,7 +50,7 @@ class Product
      */
     public function afterUpdate($product)
     {
-        $this->flatIndexer->refresh($product);
+        RefreshFlatIndexJob::dispatch($product->id);
 
         $productIds = $this->getAllRelatedProductIds($product);
 
