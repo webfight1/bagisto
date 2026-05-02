@@ -26,6 +26,7 @@ class ProductAttributeValueRepository extends Repository
     public function saveValues($data, $product, $attributes)
     {
         $attributeValuesToInsert = [];
+        $attributeValuesToUpdate = [];
 
         foreach ($attributes as $attribute) {
             if ($attribute->type === 'boolean') {
@@ -126,15 +127,22 @@ class ProductAttributeValueRepository extends Repository
                     }
                 }
 
-                $attributeValue = $this->update([
+                $attributeValuesToUpdate[] = [
+                    'id'                    => $attributeValue->id,
                     $attribute->column_name => $data[$attribute->code],
                     'unique_id'             => $uniqueId,
-                ], $attributeValue->id);
+                ];
             }
         }
 
         if (! empty($attributeValuesToInsert)) {
             $this->insert($attributeValuesToInsert);
+        }
+
+        foreach ($attributeValuesToUpdate as $updateData) {
+            $id = $updateData['id'];
+            unset($updateData['id']);
+            $this->model->where('id', $id)->update($updateData);
         }
     }
 
