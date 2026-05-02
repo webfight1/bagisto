@@ -34,7 +34,7 @@ class CategoryProductController extends Controller
             ->where('product_categories.category_id', $category->category_id)
             ->where('product_flat.status', 1)
             ->where('product_flat.visible_individually', 1)
-            ->where('product_flat.locale', app()->getLocale())
+            ->whereIn('product_flat.locale', ['et', 'en'])
             ->whereNull('products.parent_id')
             ->select(
                 'product_flat.product_id as id',
@@ -44,9 +44,12 @@ class CategoryProductController extends Controller
                 'product_flat.special_price',
                 'product_flat.type',
                 'product_flat.url_key',
-                'product_images.path as original_image'
+                'product_images.path as original_image',
+                DB::raw("FIELD(product_flat.locale, 'et', 'en') as locale_priority")
             )
-            ->get();
+            ->orderBy('locale_priority')
+            ->get()
+            ->unique('id');
 
         $products = $products->map(function($product) use ($width, $height, $format) {
             $product->is_configurable = $product->type === 'configurable';
