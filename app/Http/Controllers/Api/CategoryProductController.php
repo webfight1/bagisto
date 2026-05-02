@@ -26,6 +26,7 @@ class CategoryProductController extends Controller
 
         $products = DB::table('product_flat')
             ->join('product_categories', 'product_flat.product_id', '=', 'product_categories.product_id')
+            ->join('products', 'products.id', '=', 'product_flat.product_id')
             ->leftJoin('product_images', function($join) {
                 $join->on('product_flat.product_id', '=', 'product_images.product_id')
                     ->where('product_images.position', '=', 1);
@@ -34,6 +35,7 @@ class CategoryProductController extends Controller
             ->where('product_flat.status', 1)
             ->where('product_flat.visible_individually', 1)
             ->where('product_flat.locale', app()->getLocale())
+            ->whereNull('products.parent_id')
             ->select(
                 'product_flat.product_id as id',
                 'product_flat.name',
