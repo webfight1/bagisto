@@ -28,6 +28,7 @@ class AddressRequest extends FormRequest
     {
         return [
             'company_name' => ['nullable'],
+            'company_reg'  => ['nullable', 'string'],
             'first_name'   => ['required'],
             'last_name'    => ['required'],
             'address'      => ['required', 'array', 'min:1'],
