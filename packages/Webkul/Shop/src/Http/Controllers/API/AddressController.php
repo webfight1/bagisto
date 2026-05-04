@@ -36,6 +36,11 @@ class AddressController extends APIController
 
         Event::dispatch('customer.addresses.create.before');
 
+        \Log::info('Address store request data:', [
+            'all' => $request->all(),
+            'company_reg' => $request->input('company_reg'),
+        ]);
+
         $data = array_merge($request->only([
             'company_name',
             'company_reg',
@@ -54,6 +59,8 @@ class AddressController extends APIController
             'customer_id' => $customer->id,
             'address'     => implode(PHP_EOL, array_filter($request->input('address'))),
         ]);
+
+        \Log::info('Address data to be saved:', $data);
 
         if (! empty($data['default_address'])) {
             $this->customerAddressRepository->where('customer_id', $data['customer_id'])
