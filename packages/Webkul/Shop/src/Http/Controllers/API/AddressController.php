@@ -38,6 +38,7 @@ class AddressController extends APIController
 
         $data = array_merge($request->only([
             'company_name',
+            'company_reg',
             'first_name',
             'last_name',
             'vat_id',
@@ -81,6 +82,7 @@ class AddressController extends APIController
 
         $customerAddress = $this->customerAddressRepository->update(array_merge($request->only([
             'company_name',
+            'company_reg',
             'first_name',
             'last_name',
             'vat_id',
