@@ -25,6 +25,9 @@ Route::middleware('auth:sanctum')->post('/v1/customer/checkout/save-address', [C
 // Save shipping method and parcel locker for authenticated customers
 Route::middleware('auth:sanctum')->post('/v1/customer/checkout/save-shipping', [CustomerCheckoutController::class, 'saveShipping']);
 
+// Get available payment methods for authenticated customers
+Route::middleware('auth:sanctum')->get('/v1/customer/checkout/payment-methods', [CustomerCheckoutController::class, 'paymentMethods']);
+
 // Verify-endpoint for the parcel locker currently saved on the cart. Called
 // by the WP frontend right before placeOrder as a safety gate so that an
 // order is never placed without a confirmed pickup location.

@@ -222,4 +222,23 @@ class CustomerCheckoutController extends Controller
             ],
         ]);
     }
+
+    public function paymentMethods(Request $request): JsonResponse|JsonResource
+    {
+        if ($customer = $request->user()) {
+            Cart::initCart($customer);
+        }
+
+        if (Cart::hasError()) {
+            return (new JsonResource([
+                'message' => Cart::getErrors()['message'] ?? 'Cart has errors',
+            ]))->response()->setStatusCode(Response::HTTP_BAD_REQUEST);
+        }
+
+        return new JsonResource([
+            'data' => [
+                'payment_methods' => Payment::getSupportedPaymentMethods(),
+            ],
+        ]);
+    }
 }
