@@ -149,11 +149,23 @@ class ProductController extends Controller
      */
     public function update(ProductForm $request, int $id)
     {
+        $startTime = microtime(true);
+        \Log::info('[PERF] Product update started', ['product_id' => $id]);
+
         Event::dispatch('catalog.product.update.before', $id);
+        $afterEvent1 = microtime(true);
+        \Log::info('[PERF] After before event', ['time' => round(($afterEvent1 - $startTime) * 1000, 2) . 'ms']);
 
         $product = $this->productRepository->update($request->all(), $id);
+        $afterUpdate = microtime(true);
+        \Log::info('[PERF] After repository update', ['time' => round(($afterUpdate - $afterEvent1) * 1000, 2) . 'ms']);
 
         Event::dispatch('catalog.product.update.after', $product);
+        $afterEvent2 = microtime(true);
+        \Log::info('[PERF] After after event', ['time' => round(($afterEvent2 - $afterUpdate) * 1000, 2) . 'ms']);
+
+        $totalTime = microtime(true);
+        \Log::info('[PERF] Product update completed', ['total_time' => round(($totalTime - $startTime) * 1000, 2) . 'ms']);
 
         session()->flash('success', trans('admin::app.catalog.products.update-success'));
 

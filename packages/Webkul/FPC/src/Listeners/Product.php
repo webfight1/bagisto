@@ -28,9 +28,19 @@ class Product
      */
     public function afterUpdate($product)
     {
+        $startTime = microtime(true);
+        \Log::info('[PERF] FPC Product listener afterUpdate started', ['product_id' => $product->id]);
+
         $urls = $this->getForgettableUrls($product);
+        $t1 = microtime(true);
+        \Log::info('[PERF] getForgettableUrls completed', ['time' => round(($t1 - $startTime) * 1000, 2) . 'ms', 'url_count' => count($urls)]);
 
         ResponseCache::forget($urls);
+        $t2 = microtime(true);
+        \Log::info('[PERF] ResponseCache::forget completed', ['time' => round(($t2 - $t1) * 1000, 2) . 'ms']);
+
+        $totalTime = microtime(true);
+        \Log::info('[PERF] FPC Product listener afterUpdate completed', ['total_time' => round(($totalTime - $startTime) * 1000, 2) . 'ms']);
     }
 
     /**

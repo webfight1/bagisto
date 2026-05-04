@@ -25,6 +25,9 @@ class ProductAttributeValueRepository extends Repository
      */
     public function saveValues($data, $product, $attributes)
     {
+        $startTime = microtime(true);
+        \Log::info('[PERF] saveValues started', ['product_id' => $product->id, 'attribute_count' => count($attributes)]);
+
         $attributeValuesToInsert = [];
         $attributeValuesToUpdate = [];
 
@@ -135,8 +138,14 @@ class ProductAttributeValueRepository extends Repository
             }
         }
 
+        $loopTime = microtime(true);
+        \Log::info('[PERF] Attribute loop completed', ['time' => round(($loopTime - $startTime) * 1000, 2) . 'ms', 'to_insert' => count($attributeValuesToInsert), 'to_update' => count($attributeValuesToUpdate)]);
+
         if (! empty($attributeValuesToInsert)) {
             $this->insert($attributeValuesToInsert);
+            $insertTime = microtime(true);
+            \Log::info('[PERF] Batch insert completed', ['time' => round(($insertTime - $loopTime) * 1000, 2) . 'ms', 'count' => count($attributeValuesToInsert)]);
+            $loopTime = $insertTime;
         }
 
         foreach ($attributeValuesToUpdate as $updateData) {
@@ -144,6 +153,11 @@ class ProductAttributeValueRepository extends Repository
             unset($updateData['id']);
             $this->model->where('id', $id)->update($updateData);
         }
+        $updateTime = microtime(true);
+        \Log::info('[PERF] Individual updates completed', ['time' => round(($updateTime - $loopTime) * 1000, 2) . 'ms', 'count' => count($attributeValuesToUpdate)]);
+
+        $totalTime = microtime(true);
+        \Log::info('[PERF] saveValues completed', ['total_time' => round(($totalTime - $startTime) * 1000, 2) . 'ms']);
     }
 
     /**

@@ -50,15 +50,27 @@ class Product
      */
     public function afterUpdate($product)
     {
+        $startTime = microtime(true);
+        \Log::info('[PERF] Product listener afterUpdate started', ['product_id' => $product->id]);
+
         RefreshFlatIndexJob::dispatch($product->id);
+        $t1 = microtime(true);
+        \Log::info('[PERF] RefreshFlatIndexJob dispatched', ['time' => round(($t1 - $startTime) * 1000, 2) . 'ms']);
 
         $productIds = $this->getAllRelatedProductIds($product);
+        $t2 = microtime(true);
+        \Log::info('[PERF] getAllRelatedProductIds completed', ['time' => round(($t2 - $t1) * 1000, 2) . 'ms', 'product_count' => count($productIds)]);
 
         Bus::chain([
             new UpdateCreateInventoryIndexJob($productIds),
             new UpdateCreatePriceIndexJob($productIds),
             new UpdateCreateElasticSearchIndexJob($productIds),
         ])->dispatch();
+        $t3 = microtime(true);
+        \Log::info('[PERF] Job chain dispatched', ['time' => round(($t3 - $t2) * 1000, 2) . 'ms']);
+
+        $totalTime = microtime(true);
+        \Log::info('[PERF] Product listener afterUpdate completed', ['total_time' => round(($totalTime - $startTime) * 1000, 2) . 'ms']);
     }
 
     /**

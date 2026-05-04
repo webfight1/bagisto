@@ -149,9 +149,16 @@ abstract class AbstractType
      */
     public function update(array $data, $id, $attributes = [])
     {
+        $startTime = microtime(true);
+        \Log::info('[PERF] AbstractType update started', ['product_id' => $id]);
+
         $product = $this->productRepository->find($id);
+        $t1 = microtime(true);
+        \Log::info('[PERF] Product find', ['time' => round(($t1 - $startTime) * 1000, 2) . 'ms']);
 
         $product->update($data);
+        $t2 = microtime(true);
+        \Log::info('[PERF] Product model update', ['time' => round(($t2 - $t1) * 1000, 2) . 'ms']);
 
         /**
          * If attributes are provided then only save the provided attributes and return.
@@ -165,32 +172,55 @@ abstract class AbstractType
         }
 
         $this->attributeValueRepository->saveValues($data, $product, $product->attribute_family->custom_attributes);
+        $t3 = microtime(true);
+        \Log::info('[PERF] Save attribute values', ['time' => round(($t3 - $t2) * 1000, 2) . 'ms']);
 
         if (empty($data['channels'])) {
             $data['channels'][] = core()->getDefaultChannel()->id;
         }
 
         $product->channels()->sync($data['channels']);
+        $t4 = microtime(true);
+        \Log::info('[PERF] Sync channels', ['time' => round(($t4 - $t3) * 1000, 2) . 'ms']);
 
         if (! isset($data['categories'])) {
             $data['categories'] = [];
         }
 
         $product->categories()->sync($data['categories']);
+        $t5 = microtime(true);
+        \Log::info('[PERF] Sync categories', ['time' => round(($t5 - $t4) * 1000, 2) . 'ms']);
 
         $product->up_sells()->sync($data['up_sells'] ?? []);
+        $t6 = microtime(true);
+        \Log::info('[PERF] Sync up_sells', ['time' => round(($t6 - $t5) * 1000, 2) . 'ms']);
 
         $product->cross_sells()->sync($data['cross_sells'] ?? []);
+        $t7 = microtime(true);
+        \Log::info('[PERF] Sync cross_sells', ['time' => round(($t7 - $t6) * 1000, 2) . 'ms']);
 
         $product->related_products()->sync($data['related_products'] ?? []);
+        $t8 = microtime(true);
+        \Log::info('[PERF] Sync related_products', ['time' => round(($t8 - $t7) * 1000, 2) . 'ms']);
 
         $this->productInventoryRepository->saveInventories($data, $product);
+        $t9 = microtime(true);
+        \Log::info('[PERF] Save inventories', ['time' => round(($t9 - $t8) * 1000, 2) . 'ms']);
 
         $this->productImageRepository->upload($data, $product, 'images');
+        $t10 = microtime(true);
+        \Log::info('[PERF] Upload images', ['time' => round(($t10 - $t9) * 1000, 2) . 'ms']);
 
         $this->productVideoRepository->upload($data, $product, 'videos');
+        $t11 = microtime(true);
+        \Log::info('[PERF] Upload videos', ['time' => round(($t11 - $t10) * 1000, 2) . 'ms']);
 
         $this->productCustomerGroupPriceRepository->saveCustomerGroupPrices($data, $product);
+        $t12 = microtime(true);
+        \Log::info('[PERF] Save customer group prices', ['time' => round(($t12 - $t11) * 1000, 2) . 'ms']);
+
+        $totalTime = microtime(true);
+        \Log::info('[PERF] AbstractType update completed', ['total_time' => round(($totalTime - $startTime) * 1000, 2) . 'ms']);
 
         return $product;
     }
