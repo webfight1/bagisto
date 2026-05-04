@@ -39,7 +39,7 @@ class Product
 
         $productIds = $this->getAllRelatedProductIds($product);
 
-        UpdateCreateElasticSearchIndexJob::dispatch($productIds);
+        UpdateCreateElasticSearchIndexJob::dispatch($productIds)->onQueue('indexing');
     }
 
     /**
@@ -53,7 +53,7 @@ class Product
         $startTime = microtime(true);
         \Log::info('[PERF] Product listener afterUpdate started', ['product_id' => $product->id]);
 
-        RefreshFlatIndexJob::dispatch($product->id);
+        RefreshFlatIndexJob::dispatch($product->id)->onQueue('indexing');
         $t1 = microtime(true);
         \Log::info('[PERF] RefreshFlatIndexJob dispatched', ['time' => round(($t1 - $startTime) * 1000, 2) . 'ms']);
 
@@ -65,7 +65,7 @@ class Product
             new UpdateCreateInventoryIndexJob($productIds),
             new UpdateCreatePriceIndexJob($productIds),
             new UpdateCreateElasticSearchIndexJob($productIds),
-        ])->dispatch();
+        ])->onQueue('indexing')->dispatch();
         $t3 = microtime(true);
         \Log::info('[PERF] Job chain dispatched', ['time' => round(($t3 - $t2) * 1000, 2) . 'ms']);
 
