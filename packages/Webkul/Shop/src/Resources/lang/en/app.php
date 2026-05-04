@@ -1304,7 +1304,7 @@ return [
             'shipping-handling-excl-tax' => 'Shipping Handling (Excl. Tax)',
             'shipping-handling-incl-tax' => 'Shipping Handling (Incl. Tax)',
             'shipping-handling'          => 'Shipping Handling',
-            'shipping'                   => 'Shipping',
+            'shipping'                   => 'Transport',
             'sku'                        => 'SKU',
             'subtotal-excl-tax'          => 'Subtotal (Excl. Tax)',
             'subtotal-incl-tax'          => 'Subtotal (Incl. Tax)',

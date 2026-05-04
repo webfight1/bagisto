@@ -22,6 +22,9 @@ use Webkul\Shop\Http\Controllers\API\ReviewController;
 // Override vendor customer checkout save-address (fix: save addresses before collecting rates)
 Route::middleware('auth:sanctum')->post('/v1/customer/checkout/save-address', [CustomerCheckoutController::class, 'saveAddress']);
 
+// Save shipping method and parcel locker for authenticated customers
+Route::middleware('auth:sanctum')->post('/v1/customer/checkout/save-shipping', [CustomerCheckoutController::class, 'saveShipping']);
+
 // Verify-endpoint for the parcel locker currently saved on the cart. Called
 // by the WP frontend right before placeOrder as a safety gate so that an
 // order is never placed without a confirmed pickup location.
