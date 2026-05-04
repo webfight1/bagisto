@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AttributeProductController;
 use App\Http\Controllers\Api\CategoryProductController;
 use App\Http\Controllers\Api\GuestCartController;
+use App\Http\Controllers\Api\CustomerAddressController;
 use App\Http\Controllers\Api\CustomerCheckoutController;
 use App\Http\Controllers\Api\GuestCheckoutController;
 use App\Http\Controllers\Api\CartParcelLockerController;
@@ -18,6 +19,14 @@ use App\Http\Controllers\Api\ProductPopularityController;
 use Webkul\Esto\Http\Controllers\EstoWebhookController;
 use Webkul\Shop\Http\Controllers\API\ProductController;
 use Webkul\Shop\Http\Controllers\API\ReviewController;
+
+// Override vendor customer addresses endpoints to include company_reg field
+Route::middleware(['auth:sanctum', 'sanctum.customer'])->prefix('v1/customer/addresses')->group(function () {
+    Route::get('', [CustomerAddressController::class, 'allResources']);
+    Route::get('{id}', [CustomerAddressController::class, 'getResource']);
+    Route::post('', [CustomerAddressController::class, 'store']);
+    Route::put('{id}', [CustomerAddressController::class, 'update']);
+});
 
 // Override vendor customer checkout save-address (fix: save addresses before collecting rates)
 Route::middleware('auth:sanctum')->post('/v1/customer/checkout/save-address', [CustomerCheckoutController::class, 'saveAddress']);
