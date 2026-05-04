@@ -25,6 +25,7 @@ class AddressResource extends JsonResource
             'last_name'         => $this->last_name,
             'gender'            => $this->gender,
             'company_name'      => $this->company_name,
+            'company_reg'       => $this->company_reg,
             'address'           => explode(PHP_EOL, $this->address),
             'city'              => $this->city,
             'state'             => $this->state,
