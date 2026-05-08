@@ -13,12 +13,12 @@ class ProductPopularityController extends Controller
     {
         $limit = max(1, min((int) $limit, 100));
 
+        // Get most popular actual products (variants, not parents)
         $popularProductTotals = DB::table('order_items')
-            ->join('products', 'products.id', '=', 'order_items.product_id')
-            ->select(DB::raw('COALESCE(products.parent_id, products.id) as popular_product_id'), DB::raw('SUM(order_items.qty_ordered) as total_qty'))
-            ->groupBy('popular_product_id')
+            ->select('order_items.product_id', DB::raw('SUM(order_items.qty_ordered) as total_qty'))
+            ->groupBy('order_items.product_id')
             ->orderByDesc('total_qty')
-            ->pluck('total_qty', 'popular_product_id')
+            ->pluck('total_qty', 'product_id')
             ->map(fn ($qty) => (int) $qty)
             ->toArray();
 
@@ -35,7 +35,6 @@ class ProductPopularityController extends Controller
             })
             ->whereIn('product_flat.product_id', $popularProductIds)
             ->where('product_flat.status', 1)
-            ->where('product_flat.visible_individually', 1)
             ->where('product_flat.locale', 'et')
             ->select([
                 'product_flat.id',
