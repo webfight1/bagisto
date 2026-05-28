@@ -287,6 +287,9 @@ class SingleProductController extends Controller
             ->where('channel_id', 1) // Default channel
             ->value('qty') ?? 0;
 
+        // Get related products (same format as /v1/products list — used by WP products view)
+        $relatedProducts = $this->getRelatedProducts($product->product_id);
+
         return response()->json([
             'id' => $product->product_id,
             'name' => $product->name,
@@ -305,8 +308,89 @@ class SingleProductController extends Controller
             'attributes' => $attributes,
             'variants' => $variants,
             'categories' => $categories,
-            'translations' => $translations
+            'translations' => $translations,
+            'related_products' => $relatedProducts,
         ]);
+    }
+
+    /**
+     * Get related products in the same format as /v1/products list endpoint.
+     * Returns id, name, sku, price, special_price, url_key, description,
+     * base_image and images (with small/medium/large/original URLs).
+     */
+    private function getRelatedProducts($productId): array
+    {
+        // Relation ids from product_relations pivot (parent_id -> child_id)
+        $relatedIds = DB::table('product_relations')
+            ->where('parent_id', $productId)
+            ->pluck('child_id');
+
+        if ($relatedIds->isEmpty()) {
+            return [];
+        }
+
+        // Get base flat rows (one per product, prefer locale that has a name)
+        $flatRows = DB::table('product_flat')
+            ->whereIn('product_id', $relatedIds)
+            ->where('status', 1)
+            ->select('product_id', 'locale', 'name', 'sku', 'price', 'special_price', 'url_key', 'description', 'short_description')
+            ->get();
+
+        // Group by product_id, prefer row with a name
+        $byProduct = [];
+        foreach ($flatRows as $row) {
+            $pid = $row->product_id;
+            if (!isset($byProduct[$pid])) {
+                $byProduct[$pid] = $row;
+            } elseif ($row->name && !$byProduct[$pid]->name) {
+                $byProduct[$pid] = $row;
+            }
+        }
+
+        $result = [];
+        foreach ($byProduct as $pid => $row) {
+            $imageRows = DB::table('product_images')
+                ->where('product_id', $pid)
+                ->orderBy('position')
+                ->get();
+
+            $images = [];
+            foreach ($imageRows as $img) {
+                $images[] = [
+                    'id'                 => $img->id,
+                    'path'               => $img->path,
+                    'small_image_url'    => $this->getOptimizedImage($img->path, 200, 200, 'webp'),
+                    'medium_image_url'   => $this->getOptimizedImage($img->path, 400, 400, 'webp'),
+                    'large_image_url'    => $this->getOptimizedImage($img->path, 800, 800, 'webp'),
+                    'original_image_url' => '/storage/' . $img->path,
+                ];
+            }
+
+            $baseImage = !empty($images) ? [
+                'small_image_url'    => $images[0]['small_image_url'],
+                'medium_image_url'   => $images[0]['medium_image_url'],
+                'large_image_url'    => $images[0]['large_image_url'],
+                'original_image_url' => $images[0]['original_image_url'],
+            ] : null;
+
+            // Prefer price from product_attribute_values (correct source)
+            $relPrices = $this->getProductPrices($pid);
+
+            $result[] = [
+                'id'                => $pid,
+                'name'              => $row->name,
+                'sku'               => $row->sku,
+                'price'             => $relPrices['price'] ?: $row->price,
+                'special_price'     => $relPrices['special_price'] ?: $row->special_price,
+                'url_key'           => $row->url_key,
+                'description'       => $row->description,
+                'short_description' => $row->short_description,
+                'base_image'        => $baseImage,
+                'images'            => $images,
+            ];
+        }
+
+        return $result;
     }
 
     private function getOptimizedImage($originalPath, $width, $height, $format)
