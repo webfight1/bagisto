@@ -1265,7 +1265,7 @@ return [
             ],
 
             'shipped' => [
-                'greeting' => '✨ Sinu NAIL EDIT tellimus :order_id on nüüd teel Sinu poole. Kõik tooted said hoolikalt kontrollitud ja pakitud, et need jõuaksid Sinuni ideaalses seisukorras. Aitäh usalduse eest. 🤍',
+                'greeting' => '✨ Sinu NAIL EDIT tellimus :order_id on nüüd Sinu poole teel. Kõik tooted said hoolikalt kontrollitud ja pakitud, et need jõuaksid Sinuni ideaalses seisukorras. Aitäh usalduse eest. 🤍',
                 'subject'  => 'Sinu NAIL EDIT tellimus on teel!',
                 'summary'  => 'Saadetise kokkuvõte',
                 'title'    => 'Tellimus on teele pandud!',
