@@ -1167,7 +1167,7 @@ return [
     ],
 
     'emails' => [
-        'dear'   => 'Kallis :customer_name',
+        'dear'   => 'Armas :customer_name',
         'thanks' => 'Kui teil jäi küsimusi kirjutage <a href=":link" style=":style">:email</a>.<br/>Tänud!',
 
         'customers' => [
@@ -1265,8 +1265,8 @@ return [
             ],
 
             'shipped' => [
-                'greeting' => 'Sinu tellimus :order_id placed on :created_at on teele pandud',
-                'subject'  => 'New Shipment Confirmation',
+                'greeting' => '✨ Sinu NAIL EDIT tellimus :order_id on nüüd teel Sinu poole. Kõik tooted said hoolikalt kontrollitud ja pakitud, et need jõuaksid Sinuni ideaalses seisukorras. Aitäh usalduse eest. 🤍',
+                'subject'  => 'Sinu NAIL EDIT tellimus on teel!',
                 'summary'  => 'Saadetise kokkuvõte',
                 'title'    => 'Tellimus on teele pandud!',
             ],
