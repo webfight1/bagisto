@@ -165,6 +165,12 @@
                                             {{ $item->name }}
                                         </p>
 
+                                        @if ($item->qty_ordered)
+                                            <p class="text-lg font-bold text-blue-600">
+                                                {{ (int) $item->qty_ordered }} tk
+                                            </p>
+                                        @endif
+
                                         <div class="flex flex-col place-items-start gap-1.5">
                                             <p class="text-gray-600 dark:text-gray-300">
                                                 @lang('admin::app.sales.orders.view.amount-per-unit', [
@@ -199,12 +205,6 @@
                                             <p class="text-gray-600 dark:text-gray-300">
                                                 @lang('admin::app.sales.orders.view.sku', ['sku' => $item->sku])
                                             </p>
-
-                                            @if ($item->qty_ordered)
-                                                <p class="text-lg font-bold text-blue-600">
-                                                    {{ (int) $item->qty_ordered }} tk
-                                                </p>
-                                            @endif
 
                                             <p class="text-gray-600 dark:text-gray-300">
                                                 {{ $item->qty_ordered ? trans('admin::app.sales.orders.view.item-ordered', ['qty_ordered' => $item->qty_ordered]) : '' }}
