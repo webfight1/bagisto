@@ -200,6 +200,12 @@
                                                 @lang('admin::app.sales.orders.view.sku', ['sku' => $item->sku])
                                             </p>
 
+                                            @if ($item->qty_ordered)
+                                                <p class="text-lg font-bold text-red-600">
+                                                    {{ (int) $item->qty_ordered }} tk
+                                                </p>
+                                            @endif
+
                                             <p class="text-gray-600 dark:text-gray-300">
                                                 {{ $item->qty_ordered ? trans('admin::app.sales.orders.view.item-ordered', ['qty_ordered' => $item->qty_ordered]) : '' }}
 
