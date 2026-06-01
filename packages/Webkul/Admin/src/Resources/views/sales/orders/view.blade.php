@@ -201,7 +201,7 @@
                                             </p>
 
                                             @if ($item->qty_ordered)
-                                                <p class="text-lg font-bold text-red-600">
+                                                <p class="text-lg font-bold text-green-500">
                                                     {{ (int) $item->qty_ordered }} tk
                                                 </p>
                                             @endif
