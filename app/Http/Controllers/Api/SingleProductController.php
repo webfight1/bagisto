@@ -10,11 +10,20 @@ use Intervention\Image\Facades\Image;
 
 class SingleProductController extends Controller
 {
+    /**
+     * Active catalog rules for the current customer group, cached per request.
+     * Each entry: ['action_type', 'discount_amount', 'end_other_rules'].
+     */
+    private ?array $activeCatalogRules = null;
+
     public function show(Request $request, $slug)
     {
         // Increase memory limit for image processing
         ini_set('memory_limit', '512M');
         set_time_limit(60);
+
+        $customerGroupId = $this->resolveCustomerGroupId($request);
+        $this->loadActiveCatalogRules($customerGroupId);
 
         // Get main product by url_key
         $product = DB::table('product_flat')
@@ -172,8 +181,11 @@ class SingleProductController extends Controller
                     'id' => $pid,
                     'name' => $base->name,
                     'sku' => $base->sku,
-                    'price' => $base->price,
-                    'special_price' => $base->special_price,
+                    'price' => $this->applyCatalogRules((float) $base->price),
+                    'regular_price' => $base->price,
+                    'special_price' => $base->special_price !== null
+                        ? $this->applyCatalogRules((float) $base->special_price)
+                        : null,
                     'url_key' => $base->url_key,
                     'inventory' => $variantInventory,
                     'images' => $variantImages->toArray(),
@@ -290,13 +302,20 @@ class SingleProductController extends Controller
         // Get related products (same format as /v1/products list — used by WP products view)
         $relatedProducts = $this->getRelatedProducts($product->product_id);
 
+        $finalPrice = $this->applyCatalogRules((float) $prices['price']);
+        $finalSpecialPrice = $prices['special_price'] !== null
+            ? $this->applyCatalogRules((float) $prices['special_price'])
+            : null;
+
         return response()->json([
             'id' => $product->product_id,
             'name' => $product->name,
             'sku' => $product->sku,
             'type' => $product->type,
-            'price' => $prices['price'],
-            'special_price' => $prices['special_price'],
+            'price' => $finalPrice,
+            'regular_price' => $prices['price'],
+            'special_price' => $finalSpecialPrice,
+            'customer_group_id' => $customerGroupId,
             'url_key' => $product->url_key,
             'description' => $product->description,
             'short_description' => $product->short_description,
@@ -376,12 +395,18 @@ class SingleProductController extends Controller
             // Prefer price from product_attribute_values (correct source)
             $relPrices = $this->getProductPrices($pid);
 
+            $baseRegular = (float) ($relPrices['price'] ?: $row->price);
+            $baseSpecial = $relPrices['special_price'] ?: $row->special_price;
+
             $result[] = [
                 'id'                => $pid,
                 'name'              => $row->name,
                 'sku'               => $row->sku,
-                'price'             => $relPrices['price'] ?: $row->price,
-                'special_price'     => $relPrices['special_price'] ?: $row->special_price,
+                'price'             => $this->applyCatalogRules($baseRegular),
+                'regular_price'     => $baseRegular,
+                'special_price'     => $baseSpecial !== null
+                    ? $this->applyCatalogRules((float) $baseSpecial)
+                    : null,
                 'url_key'           => $row->url_key,
                 'description'       => $row->description,
                 'short_description' => $row->short_description,
@@ -468,5 +493,114 @@ class SingleProductController extends Controller
             'price' => $priceAttributes['price']->float_value ?? 0,
             'special_price' => $priceAttributes['special_price']->float_value ?? null,
         ];
+    }
+
+    /**
+     * Resolve current customer group id from the request.
+     * Tries Sanctum bearer token first, falls back to session customer guard,
+     * and finally to the 'guest' group.
+     */
+    private function resolveCustomerGroupId(Request $request): int
+    {
+        try {
+            $user = auth('sanctum')->user();
+            if (!$user) {
+                $user = auth('customer')->user();
+            }
+            if ($user && !empty($user->customer_group_id)) {
+                return (int) $user->customer_group_id;
+            }
+        } catch (\Throwable $e) {
+            // Fall through to guest
+        }
+
+        $guestId = DB::table('customer_groups')->where('code', 'guest')->value('id');
+        return (int) ($guestId ?? 1);
+    }
+
+    /**
+     * Load active catalog rules for the customer group into a per-request cache.
+     * Only loads rules with no per-product conditions — the gold/silver "X% off everything"
+     * use case. Rules with conditions are skipped (their effect would need full condition eval).
+     */
+    private function loadActiveCatalogRules(int $customerGroupId, int $channelId = 1): void
+    {
+        $today = now()->toDateString();
+
+        $rules = DB::table('catalog_rules')
+            ->join('catalog_rule_customer_groups', 'catalog_rules.id', '=', 'catalog_rule_customer_groups.catalog_rule_id')
+            ->join('catalog_rule_channels', 'catalog_rules.id', '=', 'catalog_rule_channels.catalog_rule_id')
+            ->where('catalog_rules.status', 1)
+            ->where('catalog_rule_customer_groups.customer_group_id', $customerGroupId)
+            ->where('catalog_rule_channels.channel_id', $channelId)
+            ->where(function ($q) use ($today) {
+                $q->whereNull('catalog_rules.starts_from')
+                  ->orWhere('catalog_rules.starts_from', '<=', $today);
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereNull('catalog_rules.ends_till')
+                  ->orWhere('catalog_rules.ends_till', '>=', $today);
+            })
+            ->orderBy('catalog_rules.sort_order')
+            ->select(
+                'catalog_rules.action_type',
+                'catalog_rules.discount_amount',
+                'catalog_rules.end_other_rules',
+                'catalog_rules.conditions'
+            )
+            ->get();
+
+        $this->activeCatalogRules = [];
+        foreach ($rules as $rule) {
+            // Only support unconditional rules for now (most common: "X% off everything for group Y")
+            $conditions = $rule->conditions;
+            if (!empty($conditions) && $conditions !== '[]' && $conditions !== 'null') {
+                continue;
+            }
+            $this->activeCatalogRules[] = [
+                'action_type'      => $rule->action_type,
+                'discount_amount'  => (float) $rule->discount_amount,
+                'end_other_rules'  => (bool) $rule->end_other_rules,
+            ];
+        }
+    }
+
+    /**
+     * Apply currently loaded catalog rules to a base price.
+     * Returns the discounted price (rounded to 2 decimals).
+     * If no rules apply, returns the original price unchanged.
+     */
+    private function applyCatalogRules(?float $basePrice): ?float
+    {
+        if ($basePrice === null || $basePrice <= 0) {
+            return $basePrice;
+        }
+        if (empty($this->activeCatalogRules)) {
+            return $basePrice;
+        }
+
+        $price = (float) $basePrice;
+        foreach ($this->activeCatalogRules as $rule) {
+            switch ($rule['action_type']) {
+                case 'by_percent':
+                    $price = $price - ($price * $rule['discount_amount'] / 100);
+                    break;
+                case 'by_fixed':
+                    $price = $price - $rule['discount_amount'];
+                    break;
+                case 'to_percent':
+                    $price = $price * $rule['discount_amount'] / 100;
+                    break;
+                case 'to_fixed':
+                    $price = $rule['discount_amount'];
+                    break;
+            }
+            $price = max(0, $price);
+            if ($rule['end_other_rules']) {
+                break;
+            }
+        }
+
+        return round($price, 2);
     }
 }
