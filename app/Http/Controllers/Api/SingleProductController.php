@@ -302,7 +302,16 @@ class SingleProductController extends Controller
         // Get related products (same format as /v1/products list — used by WP products view)
         $relatedProducts = $this->getRelatedProducts($product->product_id);
 
-        $finalPrice = $this->applyCatalogRules((float) $prices['price']);
+        // Configurable products have no own price — use minimum variant price.
+        $regularPrice = (float) $prices['price'];
+        if ($regularPrice <= 0 && $product->type === 'configurable' && !empty($variants)) {
+            $variantPrices = array_filter(array_column($variants, 'regular_price'));
+            if (!empty($variantPrices)) {
+                $regularPrice = (float) min($variantPrices);
+            }
+        }
+
+        $finalPrice = $this->applyCatalogRules($regularPrice);
         $finalSpecialPrice = $prices['special_price'] !== null
             ? $this->applyCatalogRules((float) $prices['special_price'])
             : null;
@@ -313,7 +322,7 @@ class SingleProductController extends Controller
             'sku' => $product->sku,
             'type' => $product->type,
             'price' => $finalPrice,
-            'regular_price' => $prices['price'],
+            'regular_price' => $regularPrice,
             'special_price' => $finalSpecialPrice,
             'customer_group_id' => $customerGroupId,
             'url_key' => $product->url_key,
