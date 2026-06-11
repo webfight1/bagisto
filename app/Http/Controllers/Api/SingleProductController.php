@@ -512,10 +512,21 @@ class SingleProductController extends Controller
     private function resolveCustomerGroupId(Request $request): int
     {
         try {
-            $user = auth('sanctum')->user();
-            if (!$user) {
-                $user = auth('customer')->user();
+            // Resolve from Sanctum bearer token manually since this route
+            // doesn't have the auth:sanctum middleware applied.
+            $bearer = $request->bearerToken();
+            if ($bearer) {
+                $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($bearer);
+                if ($accessToken && $accessToken->tokenable) {
+                    $user = $accessToken->tokenable;
+                    if (!empty($user->customer_group_id)) {
+                        return (int) $user->customer_group_id;
+                    }
+                }
             }
+
+            // Fallback to session-authenticated customer guard
+            $user = auth('customer')->user();
             if ($user && !empty($user->customer_group_id)) {
                 return (int) $user->customer_group_id;
             }
