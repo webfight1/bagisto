@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\BindSanctumCustomerToGuard;
 use App\Http\Middleware\EncryptCookies;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Cookie\Middleware\EncryptCookies as BaseEncryptCookies;
@@ -41,6 +42,14 @@ return Application::configure(basePath: dirname(__DIR__))
          * Add the overridden middleware at the end of the list.
          */
         $middleware->replaceInGroup('web', BaseEncryptCookies::class, EncryptCookies::class);
+
+        /**
+         * Bind Sanctum-authenticated customers to the `customer` guard on every
+         * API request. Required so Cart::addProduct picks up customer-group
+         * catalog rule prices (e.g. -25% for Kuld kliendid) when the request
+         * comes in with only a bearer token (no session cookie).
+         */
+        $middleware->prependToGroup('api', BindSanctumCustomerToGuard::class);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->command('omniva:sync-locations')->dailyAt('03:00');
