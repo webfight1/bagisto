@@ -21,6 +21,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Override Bagisto's CustomerRepository so that getCurrentGroup()
+        // recognises Sanctum-authenticated customers (required for
+        // Cart::addProduct to apply group-specific catalog rule prices).
+        $this->app->singleton(
+            \Webkul\Customer\Repositories\CustomerRepository::class,
+            \App\Repositories\SanctumAwareCustomerRepository::class
+        );
+
+
         // Register before vendor REST API routes so this takes precedence
         // over the vendor's CheckoutController which calls Shipping::collectRates()
         // before saving the address (causes abort(400) on fresh carts).
