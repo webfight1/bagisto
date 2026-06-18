@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Webkul\Checkout\Facades\Cart;
 use Webkul\Checkout\Repositories\CartRepository;
+use Webkul\Customer\Models\Customer;
 use Webkul\Sales\Models\Order;
 use Webkul\Sales\Repositories\OrderRepository;
 use Webkul\Sales\Transformers\OrderResource;
@@ -152,6 +153,21 @@ class EstoWebhookController
         // ------------------------------------------------------------------
         // 9. Create order
         // ------------------------------------------------------------------
+        // CRITICAL: The ESTO webhook is an inbound request from ESTO's server
+        // — there is NO Bearer token, NO session cookie. Without explicitly
+        // authenticating the cart's customer here, Cart::collectTotals() (and
+        // every getCurrentGroup() call it triggers) sees a guest user and
+        // recalculates cart_items.price at guest-group prices, overwriting
+        // the discounted prices that were stored at cart-add time.
+        // This is the root cause of orders being saved at full price for
+        // gold/silver customers paying via ESTO.
+        if ($cart->customer_id) {
+            $customer = Customer::find($cart->customer_id);
+            if ($customer) {
+                auth('customer')->setUser($customer);
+            }
+        }
+
         Cart::setCart($cart);
         Cart::collectTotals();
 
