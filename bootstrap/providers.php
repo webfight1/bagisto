@@ -5,6 +5,7 @@ return [
      * Application service providers.
      */
     App\Providers\AppServiceProvider::class,
+    App\Providers\SeedPriceGroupServiceProvider::class,
 
     /**
      * Webkul's service providers.

@@ -313,30 +313,8 @@ class MeritInvoiceService
             'Email' => $billingAddress->email ?? $order->customer_email ?? '',
         ];
 
-        // Prepare invoice rows from order items
-        $invoiceRows = [];
-
-        foreach ($order->items as $item) {
-            // Use the final price after discounts (item->total / qty)
-            // This ensures per-unit price reflects any applied discounts
-            $itemQty = $item->qty_ordered;
-            $itemTotalWithDiscount = $item->total - ($item->discount_amount ?? 0);
-            $pricePerUnit = $itemQty > 0 ? round((float) $itemTotalWithDiscount / (float) $itemQty, 2) : 0;
-
-            $invoiceRows[] = [
-                'Item' => [
-                    'Code' => substr($item->sku ?? 'ITEM-' . $item->id, 0, 20),
-                    'Description' => $item->name,
-                    'Type' => 3, // 3 = product
-                    'UOMName' => 'tk',
-                ],
-                'Quantity' => (float) $itemQty,
-                'Price' => $pricePerUnit,
-                'DiscountPct' => 0,
-                'DiscountAmount' => 0.00,
-                'TaxId' => $taxId,
-            ];
-        }
+        // Merit receives seed price groups, while Bagisto keeps the detailed product rows.
+        $invoiceRows = app(SeedPriceGroupService::class)->buildMeritRows($order, $taxId);
 
         // Add shipping if exists
         if ($order->shipping_amount > 0) {
