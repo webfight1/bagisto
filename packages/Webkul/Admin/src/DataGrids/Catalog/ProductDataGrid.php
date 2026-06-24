@@ -118,6 +118,7 @@ class ProductDataGrid extends DataGrid
             'index'      => 'sku',
             'label'      => trans('admin::app.catalog.products.index.datagrid.sku'),
             'type'       => 'string',
+            'searchable' => true,
             'filterable' => true,
             'sortable'   => true,
         ]);
