@@ -2,8 +2,11 @@
 
 namespace App\Listeners;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Facades\Image;
 
 /**
  * Kui Bagistos toode luuakse / muudetakse / kustutatakse, kutsume WordPress-i
@@ -19,7 +22,83 @@ class PurgeWpCache
 {
     public function onProductSaved($product): void
     {
-        $this->purge('product-save', ['product_id' => is_object($product) ? ($product->id ?? null) : $product]);
+        $productId = is_object($product) ? ($product->id ?? null) : $product;
+
+        // Pre-generate WebP thumbnails for this specific product's images so
+        // customers never hit an uncached image (and admins don't need to
+        // remember to run `php artisan images:generate-cache` manually).
+        if ($productId) {
+            $this->generateImageCacheForProduct((int) $productId);
+        }
+
+        $this->purge('product-save', ['product_id' => $productId]);
+    }
+
+    /**
+     * Pre-generate 80/260/496/992 WebP variants for every image of the given
+     * product. Same output paths as GenerateProductImageCache command so the
+     * frontend always finds a hit.
+     */
+    private function generateImageCacheForProduct(int $productId): void
+    {
+        try {
+            $images = DB::table('product_images')
+                ->where('product_id', $productId)
+                ->orderBy('id')
+                ->get(['path']);
+
+            if ($images->isEmpty()) {
+                return;
+            }
+
+            $sizes = [[80, 80], [260, 260], [496, 496], [992, 992]];
+            foreach ($images as $image) {
+                foreach ($sizes as [$w, $h]) {
+                    $this->makeOptimizedWebp($image->path, $w, $h);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[PurgeWpCache] image cache generation failed', [
+                'product_id' => $productId,
+                'error'      => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function makeOptimizedWebp(?string $originalPath, int $width, int $height): void
+    {
+        if (! $originalPath) {
+            return;
+        }
+
+        $info = pathinfo($originalPath);
+        $cachedPath = sprintf('cache/%s/%s_%dx%d.webp', $info['dirname'], $info['filename'], $width, $height);
+
+        $disk = Storage::disk('public');
+        if ($disk->exists($cachedPath) || ! $disk->exists($originalPath)) {
+            return;
+        }
+
+        try {
+            $img = Image::make($disk->path($originalPath))
+                ->resize($width, null, function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                });
+            if ($img->height() > $height) {
+                $img->crop($width, $height, 0, 0);
+            }
+            $img->encode('webp', 90);
+
+            $absolutePath = $disk->path($cachedPath);
+            $dir = dirname($absolutePath);
+            if (! is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            $img->save($absolutePath);
+        } catch (\Throwable $e) {
+            // Silent — one bad image shouldn't block a whole product save.
+        }
     }
 
     public function onProductDeleted($productId): void

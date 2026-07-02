@@ -55,6 +55,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('omniva:sync-locations')->dailyAt('03:00');
         $schedule->command('smartpost:sync-locations')->dailyAt('03:15');
         $schedule->command('smartpost:sync-locations-fi')->dailyAt('03:20');
+
+        // Safety net: regenerate any WebP variants that might be missing —
+        // per-product cache is created on save via PurgeWpCache listener,
+        // but this catches images uploaded via any other path (imports,
+        // direct DB seeds, migrations from other tools).
+        $schedule->command('images:generate-cache')
+            ->dailyAt('03:30')
+            ->withoutOverlapping()
+            ->onOneServer();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
