@@ -74,5 +74,15 @@ class AppServiceProvider extends ServiceProvider
         if (config('merit-invoice.enabled', true)) {
             Event::listen('sales.order.update-status.after', CreateMeritInvoice::class);
         }
+
+        // Purge WordPress cache when a product / category is created,
+        // updated or deleted so the storefront reflects admin edits
+        // without a manual "Clear Cache" click.
+        Event::listen('catalog.product.create.after', [\App\Listeners\PurgeWpCache::class, 'onProductSaved']);
+        Event::listen('catalog.product.update.after', [\App\Listeners\PurgeWpCache::class, 'onProductSaved']);
+        Event::listen('catalog.product.delete.before', [\App\Listeners\PurgeWpCache::class, 'onProductDeleted']);
+        Event::listen('catalog.category.create.after', [\App\Listeners\PurgeWpCache::class, 'onCategorySaved']);
+        Event::listen('catalog.category.update.after', [\App\Listeners\PurgeWpCache::class, 'onCategorySaved']);
+        Event::listen('catalog.category.delete.before', [\App\Listeners\PurgeWpCache::class, 'onCategorySaved']);
     }
 }
