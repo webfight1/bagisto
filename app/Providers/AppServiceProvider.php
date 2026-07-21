@@ -75,6 +75,18 @@ class AppServiceProvider extends ServiceProvider
             Event::listen('sales.order.update-status.after', CreateMeritInvoice::class);
         }
 
+        // Send Meta Conversions API "Purchase" event server-side. Uses the
+        // same event_id (order.increment_id) as the client-side pixel so
+        // Meta deduplicates when both signals arrive.
+        Event::listen('sales.order.update-status.after', function ($order) {
+            if (in_array($order->status, [
+                \Webkul\Sales\Models\Order::STATUS_PROCESSING,
+                \Webkul\Sales\Models\Order::STATUS_COMPLETED,
+            ], true)) {
+                app(\App\Listeners\SendMetaPurchase::class)->handle($order);
+            }
+        });
+
         // Purge WordPress cache when a product / category is created,
         // updated or deleted so the storefront reflects admin edits
         // without a manual "Clear Cache" click.
