@@ -35,6 +35,16 @@ class CartItemResource extends JsonResource
             'product_url_key'           => $this->product->url_key,
             'options'                   => $this->formatAdditionalAttributes(),
             'can_change_qty'            => $this->product ? $this->product->getTypeInstance()->showQuantityBox() : false,
+            // Inline stock info so the WP frontend can auto-remove items
+            // that went out of stock while sitting in the cart.
+            'in_stock'                  => $this->product
+                ? $this->product->getTypeInstance()->haveSufficientQuantity((int) $this->quantity)
+                : true,
+            'product'                   => $this->product ? [
+                'id'       => $this->product->id,
+                'name'     => $this->product->name ?? $this->name,
+                'in_stock' => $this->product->getTypeInstance()->haveSufficientQuantity((int) $this->quantity),
+            ] : null,
         ];
     }
 
