@@ -35,15 +35,29 @@ class CartItemResource extends JsonResource
             'product_url_key'           => $this->product->url_key,
             'options'                   => $this->formatAdditionalAttributes(),
             'can_change_qty'            => $this->product ? $this->product->getTypeInstance()->showQuantityBox() : false,
-            // Inline stock info so the WP frontend can auto-remove items
-            // that went out of stock while sitting in the cart.
+            // Inline stock info so the WP frontend can auto-remove or
+            // auto-reduce cart items that lost stock while sitting in the
+            // cart (e.g. another shopper bought the last units).
             'in_stock'                  => $this->product
                 ? $this->product->getTypeInstance()->haveSufficientQuantity((int) $this->quantity)
                 : true,
+            // Available = physical stock minus already-ordered qty.
+            // Reads product_inventory_indices (channel 1) which is what
+            // Cart::addProduct uses for its stock guard.
+            'available_qty'             => $this->product
+                ? (int) (\Illuminate\Support\Facades\DB::table('product_inventory_indices')
+                    ->where('product_id', $this->product->id)
+                    ->where('channel_id', 1)
+                    ->value('qty') ?? 0)
+                : null,
             'product'                   => $this->product ? [
-                'id'       => $this->product->id,
-                'name'     => $this->product->name ?? $this->name,
-                'in_stock' => $this->product->getTypeInstance()->haveSufficientQuantity((int) $this->quantity),
+                'id'            => $this->product->id,
+                'name'          => $this->product->name ?? $this->name,
+                'in_stock'      => $this->product->getTypeInstance()->haveSufficientQuantity((int) $this->quantity),
+                'available_qty' => (int) (\Illuminate\Support\Facades\DB::table('product_inventory_indices')
+                    ->where('product_id', $this->product->id)
+                    ->where('channel_id', 1)
+                    ->value('qty') ?? 0),
             ] : null,
         ];
     }
