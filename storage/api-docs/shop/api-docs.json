@@ -10,11 +10,626 @@
     },
     "servers": [
         {
-            "url": "http://localhost",
+            "url": "https://aiamaailm.webfight.shop",
             "description": "Bagisto Rest API"
         }
     ],
     "paths": {
+        "/api/v1/category/{slug}": {
+            "get": {
+                "tags": [
+                    "Aiamaailm Catalog"
+                ],
+                "summary": "Products in a category (incl. ancestor walk)",
+                "description": "Returns active, individually-visible, non-variant products in the category identified by slug. Walks down: querying `root` returns everything; querying `tomat` returns only the tomato subtree. Image is rendered on-the-fly at the requested size/format and cached.",
+                "operationId": "getAiamaailmCategoryProducts",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "tomat"
+                    },
+                    {
+                        "name": "width",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 260
+                        }
+                    },
+                    {
+                        "name": "height",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 260
+                        }
+                    },
+                    {
+                        "name": "format",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "webp",
+                            "enum": [
+                                "webp",
+                                "jpg",
+                                "png"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "sku": {
+                                                "type": "string"
+                                            },
+                                            "price": {
+                                                "type": "string"
+                                            },
+                                            "special_price": {
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "url_key": {
+                                                "type": "string"
+                                            },
+                                            "short_description": {
+                                                "description": "HTML allowed",
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "is_configurable": {
+                                                "type": "boolean"
+                                            },
+                                            "image": {
+                                                "type": "string",
+                                                "nullable": true
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/category": {
+            "get": {
+                "tags": [
+                    "Aiamaailm Catalog"
+                ],
+                "summary": "All active categories (for menu)",
+                "description": "Returns all active categories (excluding Root) with parent_id so the frontend can build a hierarchy tree. Filtered to display_mode=products.",
+                "operationId": "getAiamaailmCategoriesMenu",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "slug": {
+                                                "type": "string"
+                                            },
+                                            "url_path": {
+                                                "type": "string"
+                                            },
+                                            "parent_id": {
+                                                "type": "integer"
+                                            },
+                                            "position": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/customer/reset-password": {
+            "post": {
+                "tags": [
+                    "Aiamaailm Customer"
+                ],
+                "summary": "Complete password reset via email-token link",
+                "description": "Posts the token from the email reset link, customer email, and new password. Bagisto vendor REST package only exposes /forgot-password (sends mail); this completes the flow.",
+                "operationId": "customerResetPassword",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "token",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "token": {
+                                        "description": "From /parool-uuesti/{token} URL in email",
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "minLength": 6
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset successful"
+                    },
+                    "422": {
+                        "description": "Validation error or invalid/expired token"
+                    }
+                }
+            }
+        },
+        "/api/v1/dpd/locations": {
+            "get": {
+                "tags": [
+                    "Aiamaailm Shipping"
+                ],
+                "summary": "DPD parcel shop / locker locations (EE)",
+                "description": "Synced from DPD API. Use `parcel_shop_id` as locker_id when sending to /checkout/shipping-method.",
+                "operationId": "getDpdLockers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "locations": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "parcel_shop_id": {
+                                                                "type": "string",
+                                                                "example": "EE90273"
+                                                            },
+                                                            "parcel_shop_type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "PickupStation",
+                                                                    "ParcelLocker"
+                                                                ]
+                                                            },
+                                                            "company_name": {
+                                                                "type": "string"
+                                                            },
+                                                            "street": {
+                                                                "type": "string"
+                                                            },
+                                                            "house_no": {
+                                                                "type": "string"
+                                                            },
+                                                            "city": {
+                                                                "type": "string"
+                                                            },
+                                                            "zip_code": {
+                                                                "type": "string"
+                                                            },
+                                                            "country_code": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/omniva/locations": {
+            "get": {
+                "tags": [
+                    "Aiamaailm Shipping"
+                ],
+                "summary": "Omniva parcel locker locations (EE)",
+                "description": "Synced daily from Omniva official locations.json. Returns all Estonian parcel lockers ordered by name. Use the `zip` field as locker_id when sending to /checkout/shipping-method.",
+                "operationId": "getOmnivaLockers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "locations": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "zip": {
+                                                                "type": "string",
+                                                                "example": "96331"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "county": {
+                                                                "type": "string"
+                                                            },
+                                                            "municipality": {
+                                                                "type": "string"
+                                                            },
+                                                            "city": {
+                                                                "type": "string"
+                                                            },
+                                                            "street": {
+                                                                "type": "string"
+                                                            },
+                                                            "house": {
+                                                                "type": "string"
+                                                            },
+                                                            "lng": {
+                                                                "type": "string"
+                                                            },
+                                                            "lat": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/customer/orders/{id}/withdraw": {
+            "post": {
+                "tags": [
+                    "Aiamaailm Customer"
+                ],
+                "summary": "EU 14-day right-of-withdrawal — one-click order cancellation",
+                "description": "Sets order status to \"withdrawn\" and emails the shop owner. Customer must be authenticated and own the order. Idempotent: orders already in withdrawn/canceled/closed state return 422.",
+                "operationId": "withdrawOrder",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Order ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "order_id": {
+                                                    "type": "integer"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "withdrawn"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated"
+                    },
+                    "404": {
+                        "description": "Order not found or not owned by customer"
+                    },
+                    "422": {
+                        "description": "Order already in terminal state"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/pages/{slug}": {
+            "get": {
+                "tags": [
+                    "Aiamaailm CMS"
+                ],
+                "summary": "Get CMS page (managed via Filament /cms)",
+                "description": "Returns a structured page. `data` is filled for the homepage (slug=home) with hero/valueProps/story/cta blocks; `blocks` is the generic Builder content for other pages.",
+                "operationId": "getAiamaailmPage",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "description": "Page slug, e.g. home, firmast, kontakt",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "slug": {
+                                            "type": "string",
+                                            "example": "home"
+                                        },
+                                        "title": {
+                                            "type": "string",
+                                            "example": "Avaleht"
+                                        },
+                                        "excerpt": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "data": {
+                                            "description": "Homepage-only structured data (hero, valueProps, story, cta)",
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "blocks": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "text",
+                                                            "text_image",
+                                                            "image",
+                                                            "gallery",
+                                                            "quote",
+                                                            "cta",
+                                                            "html"
+                                                        ]
+                                                    },
+                                                    "data": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Page not found"
+                    }
+                }
+            }
+        },
+        "/api/v1/search": {
+            "get": {
+                "tags": [
+                    "Aiamaailm Search"
+                ],
+                "summary": "Product search (name, SKU, short description)",
+                "description": "SQL LIKE-based search over active, individually-visible products. Excludes variant children. Hard-capped at 50 results. Returns each product with optimized 200x200 webp image.",
+                "operationId": "aiamaailmSearch",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Search query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "sku": {
+                                                        "type": "string"
+                                                    },
+                                                    "price": {
+                                                        "type": "string"
+                                                    },
+                                                    "special_price": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "url_key": {
+                                                        "type": "string"
+                                                    },
+                                                    "image": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "meta": {
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "query": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/smartpost/locations": {
+            "get": {
+                "tags": [
+                    "Aiamaailm Shipping"
+                ],
+                "summary": "Itella / Smartpost parcel locker locations (EE)",
+                "description": "Synced from Itella plugin API (delivery.plugins.itella.com). Includes both legacy blue SMARTPOST and newer white LOCKER types. Use `location_id` when sending to /checkout/shipping-method.",
+                "operationId": "getSmartpostLockers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "locations": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "location_id": {
+                                                                "type": "string",
+                                                                "example": "3696605"
+                                                            },
+                                                            "postal_code": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "municipality": {
+                                                                "type": "string"
+                                                            },
+                                                            "city": {
+                                                                "type": "string"
+                                                            },
+                                                            "street": {
+                                                                "type": "string"
+                                                            },
+                                                            "house": {
+                                                                "type": "string"
+                                                            },
+                                                            "lng": {
+                                                                "type": "string"
+                                                            },
+                                                            "lat": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/attributes": {
             "get": {
                 "tags": [
@@ -10499,6 +11114,26 @@
         {
             "name": "Wishlists",
             "description": "API Endpoints for Wishlists"
+        },
+        {
+            "name": "Aiamaailm Catalog",
+            "description": "Aiamaailm Catalog"
+        },
+        {
+            "name": "Aiamaailm Customer",
+            "description": "Aiamaailm Customer"
+        },
+        {
+            "name": "Aiamaailm Shipping",
+            "description": "Aiamaailm Shipping"
+        },
+        {
+            "name": "Aiamaailm CMS",
+            "description": "Aiamaailm CMS"
+        },
+        {
+            "name": "Aiamaailm Search",
+            "description": "Aiamaailm Search"
         }
     ],
     "security": [

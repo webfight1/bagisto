@@ -13,7 +13,7 @@ return [
                  * Route for accessing api documentation interface
                 */
                 'api'             => 'api/shop/documentation',
-                'docs'            => storage_path('api-docs/shop'),
+                'docs'            => 'docs/shop',
                 'oauth2_callback' => 'api/shop/oauth2-callback',
             ],
             'paths' => [
@@ -25,12 +25,12 @@ return [
                 /*
                  * File name of the generated json documentation file
                 */
-                'docs_json' => 'api-docs.json',
+                'docs_json' => 'shop/api-docs.json',
 
                 /*
                  * File name of the generated YAML documentation file
                 */
-                'docs_yaml' => 'api-docs.yaml',
+                'docs_yaml' => 'shop/api-docs.yaml',
 
                 /*
                 * Set this to `json` or `yaml` to determine which documentation file to use in UI
@@ -42,6 +42,7 @@ return [
                 */
                 'annotations' => [
                     base_path('vendor/bagisto/rest-api/src/Docs/Shop'),
+                    app_path('Http/Controllers/Api'),
                 ],
 
             ],
@@ -56,7 +57,7 @@ return [
                  * Route for accessing api documentation interface
                 */
                 'api'             => 'api/admin/documentation',
-                'docs'            => storage_path('api-docs/admin'),
+                'docs'            => 'docs/admin',
                 'oauth2_callback' => 'api/admin/oauth2-callback',
             ],
             'paths' => [
@@ -68,12 +69,12 @@ return [
                 /*
                  * File name of the generated json documentation file
                 */
-                'docs_json' => 'admin-docs.json',
+                'docs_json' => 'admin/admin-docs.json',
 
                 /*
                  * File name of the generated YAML documentation file
                 */
-                'docs_yaml' => 'admin-docs.yaml',
+                'docs_yaml' => 'admin/admin-docs.yaml',
 
                 /*
                 * Set this to `json` or `yaml` to determine which documentation file to use in UI
