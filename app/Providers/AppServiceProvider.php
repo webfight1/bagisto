@@ -3,9 +3,11 @@
 namespace App\Providers;
 
 use App\Http\Controllers\Api\CustomerCheckoutController;
+use App\Http\Controllers\Api\CustomerProfileController;
 use App\Listeners\CreateMeritInvoice;
 use Barryvdh\Debugbar\Facades\Debugbar;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\ParallelTesting;
@@ -29,6 +31,15 @@ class AppServiceProvider extends ServiceProvider
             ->middleware(['api', 'etag', 'sanctum.locale', 'sanctum.currency', 'auth:sanctum', 'sanctum.customer'])
             ->post('v1/customer/checkout/save-address', [CustomerCheckoutController::class, 'saveAddress']);
 
+        // Override vendor Webkul\RestApi customer profile endpoints to persist
+        // company_name / company_reg / vat_id (added on customers table).
+        Route::prefix('api')
+            ->middleware(['api', 'auth:sanctum', 'sanctum.customer'])
+            ->group(function () {
+                Route::get('v1/customer/get',      [CustomerProfileController::class, 'get']);
+                Route::put('v1/customer/profile',  [CustomerProfileController::class, 'update']);
+            });
+
         $allowedIPs = array_map('trim', explode(',', config('app.debug_allowed_ips')));
 
         $allowedIPs = array_filter($allowedIPs);
@@ -49,6 +60,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Filament uses <dynamic-component> in its blade templates; Bagisto's
+        // component registration apparently drops Laravel's default aliasing of
+        // this, so we register it explicitly here.
+        Blade::component('dynamic-component', \Illuminate\View\DynamicComponent::class);
+
         LogViewer::auth(function ($request) {
             $allowed = array_filter(array_map('trim', explode(',', env('LOG_VIEWER_ALLOWED_IPS', ''))));
             return in_array($request->ip(), $allowed);

@@ -1,11 +1,10 @@
 <?php
 
 return [
-    /**
-     * Application service providers.
-     */
     App\Providers\AppServiceProvider::class,
     App\Providers\SeedPriceGroupServiceProvider::class,
+    App\Providers\InvoiceServiceProvider::class,
+    App\Providers\Filament\AdminPanelProvider::class,
 
     /**
      * Webkul's service providers.
@@ -24,6 +23,8 @@ return [
     Webkul\DataGrid\Providers\DataGridServiceProvider::class,
     Webkul\DataTransfer\Providers\DataTransferServiceProvider::class,
     Webkul\DebugBar\Providers\DebugBarServiceProvider::class,
+    Webkul\Esto\Providers\EstoServiceProvider::class,
+    Webkul\Everypay\Providers\EverypayServiceProvider::class,
     Webkul\FPC\Providers\FPCServiceProvider::class,
     Webkul\GDPR\Providers\GDPRServiceProvider::class,
     Webkul\Installer\Providers\InstallerServiceProvider::class,
@@ -33,8 +34,6 @@ return [
     Webkul\Notification\Providers\NotificationServiceProvider::class,
     Webkul\Payment\Providers\PaymentServiceProvider::class,
     Webkul\Paypal\Providers\PaypalServiceProvider::class,
-    Webkul\Everypay\Providers\EverypayServiceProvider::class,
-    Webkul\Esto\Providers\EstoServiceProvider::class,
     Webkul\Product\Providers\ProductServiceProvider::class,
     Webkul\Rule\Providers\RuleServiceProvider::class,
     Webkul\Sales\Providers\SalesServiceProvider::class,

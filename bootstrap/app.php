@@ -41,6 +41,12 @@ return Application::configure(basePath: dirname(__DIR__))
          * Add the overridden middleware at the end of the list.
          */
         $middleware->replaceInGroup('web', BaseEncryptCookies::class, EncryptCookies::class);
+
+        /* CSRF exceptions for external payment webhooks (they cannot send a Laravel CSRF token). */
+        $middleware->validateCsrfTokens(except: [
+            'esto/callback',
+            'everypay/callback',
+        ]);
     })
     ->withSchedule(function (Schedule $schedule) {
         $schedule->command('omniva:sync-locations')->dailyAt('03:00');
