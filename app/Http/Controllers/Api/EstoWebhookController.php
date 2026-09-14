@@ -45,7 +45,7 @@ class EstoWebhookController
         // ------------------------------------------------------------------
         // 2. Validate MAC (UPPERCASE(SHA512(json + API_SECRET)))
         // ------------------------------------------------------------------
-        $secret = config('services.esto.secret') ?? config('esto.webhook_secret');
+        $secret = core()->getConfigData("sales.payment_methods.esto.secret_key") ?: (config("services.esto.secret") ?? config("esto.webhook_secret"));
 
         $expectedMac = strtoupper(
             hash('sha512', $jsonData . $secret)

@@ -18,7 +18,7 @@ class SyncSmartpostLocations extends Command
         ini_set('memory_limit', '1G');
         set_time_limit(0);
 
-        $url = 'https://locationservice.posti.com/api/2/location/?countryCode=EE';
+        $url = 'https://delivery.plugins.itella.com/api/locations?countryCode=EE&types=SMARTPOST&types=LOCKER&types=POSTOFFICE&types=PICKUPPOINT';
 
         $this->info('Fetching Smartpost locations...');
 
@@ -43,7 +43,7 @@ class SyncSmartpostLocations extends Command
             $country = $row['countryCode'] ?? null;
             $type = $row['type'] ?? null;
 
-            return $country === 'EE' && $type === 'SMARTPOST';
+            return $country === 'EE' && in_array($type, ['SMARTPOST', 'LOCKER'], true);
         }));
 
         $this->info('Filtered EE Smartpost parcel lockers: '.count($filtered));

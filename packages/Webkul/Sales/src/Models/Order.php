@@ -67,6 +67,11 @@ class Order extends Model implements OrderContract
     public const STATUS_FRAUD = 'fraud';
 
     /**
+     * EU 14-day right-of-withdrawal — customer withdrew the order.
+     */
+    public const STATUS_WITHDRAWN = 'withdrawn';
+
+    /**
      * The attributes that aren't mass assignable.
      *
      * @var array
@@ -96,6 +101,7 @@ class Order extends Model implements OrderContract
         self::STATUS_CANCELED        => 'Canceled',
         self::STATUS_CLOSED          => 'Closed',
         self::STATUS_FRAUD           => 'Fraud',
+        self::STATUS_WITHDRAWN       => 'Taganetud',
     ];
 
     /**

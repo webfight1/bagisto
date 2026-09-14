@@ -7,9 +7,39 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
+use OpenApi\Attributes as OA;
 
 class SearchController extends Controller
 {
+    #[OA\Get(
+        path: '/api/v1/search',
+        operationId: 'aiamaailmSearch',
+        summary: 'Product search (name, SKU, short description)',
+        description: 'SQL LIKE-based search over active, individually-visible products. Excludes variant children. Hard-capped at 50 results. Returns each product with optimized 200x200 webp image.',
+        tags: ['Aiamaailm Search'],
+        parameters: [
+            new OA\Parameter(name: 'q', in: 'query', required: false, description: 'Search query', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'OK', content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'data', type: 'array', items: new OA\Items(properties: [
+                        new OA\Property(property: 'id', type: 'integer'),
+                        new OA\Property(property: 'name', type: 'string'),
+                        new OA\Property(property: 'sku', type: 'string'),
+                        new OA\Property(property: 'price', type: 'string'),
+                        new OA\Property(property: 'special_price', type: 'string', nullable: true),
+                        new OA\Property(property: 'url_key', type: 'string'),
+                        new OA\Property(property: 'image', type: 'string', nullable: true),
+                    ])),
+                    new OA\Property(property: 'meta', type: 'object', properties: [
+                        new OA\Property(property: 'total', type: 'integer'),
+                        new OA\Property(property: 'query', type: 'string'),
+                    ]),
+                ]
+            )),
+        ]
+    )]
     public function search(Request $request)
     {
         $query = $request->input('q', '');
@@ -39,7 +69,7 @@ class SearchController extends Controller
                       ->from('products')
                       ->whereNotNull('parent_id');
             })
-            ->select('product_id', 'name', 'sku', 'price', 'special_price', 'url_key')
+            ->select('product_id', 'name', 'sku', 'price', 'special_price', 'url_key', 'featured', 'new')
             ->groupBy('product_id')
             ->limit(50)
             ->get();
@@ -64,6 +94,8 @@ class SearchController extends Controller
                 'price' => $product->price,
                 'special_price' => $product->special_price,
                 'url_key' => $product->url_key,
+                'featured' => (bool) $product->featured,
+                'new' => (bool) $product->new,
                 'image' => $optimizedImage,
             ];
         }

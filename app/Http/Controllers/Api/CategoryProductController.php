@@ -7,12 +7,40 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
+use OpenApi\Attributes as OA;
 
 class CategoryProductController extends Controller
 {
     /** Cached active catalog rules for the current customer group. */
     private ?array $activeCatalogRules = null;
 
+    #[OA\Get(
+        path: '/api/v1/category/{slug}',
+        operationId: 'getAiamaailmCategoryProducts',
+        summary: 'Products in a category (incl. ancestor walk)',
+        description: 'Returns active, individually-visible, non-variant products in the category identified by slug. Walks down: querying `root` returns everything; querying `tomat` returns only the tomato subtree. Image is rendered on-the-fly at the requested size/format and cached.',
+        tags: ['Aiamaailm Catalog'],
+        parameters: [
+            new OA\Parameter(name: 'slug', in: 'path', required: true, schema: new OA\Schema(type: 'string'), example: 'tomat'),
+            new OA\Parameter(name: 'width', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 260)),
+            new OA\Parameter(name: 'height', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 260)),
+            new OA\Parameter(name: 'format', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['webp', 'jpg', 'png'], default: 'webp')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'OK', content: new OA\JsonContent(type: 'array', items: new OA\Items(properties: [
+                new OA\Property(property: 'id', type: 'integer'),
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'sku', type: 'string'),
+                new OA\Property(property: 'price', type: 'string'),
+                new OA\Property(property: 'special_price', type: 'string', nullable: true),
+                new OA\Property(property: 'url_key', type: 'string'),
+                new OA\Property(property: 'short_description', type: 'string', nullable: true, description: 'HTML allowed'),
+                new OA\Property(property: 'is_configurable', type: 'boolean'),
+                new OA\Property(property: 'image', type: 'string', nullable: true),
+            ]))),
+            new OA\Response(response: 404, description: 'Category not found'),
+        ]
+    )]
     public function index(Request $request, $slug)
     {
         $customerGroupId = $this->resolveCustomerGroupId($request);
@@ -50,6 +78,9 @@ class CategoryProductController extends Controller
                 'product_flat.special_price',
                 'product_flat.type',
                 'product_flat.url_key',
+                'product_flat.short_description',
+                'product_flat.featured',
+                'product_flat.new',
                 'product_images.path as original_image',
                 DB::raw("FIELD(product_flat.locale, 'et', 'en') as locale_priority")
             )
@@ -59,6 +90,8 @@ class CategoryProductController extends Controller
 
         $products = $products->map(function($product) use ($width, $height, $format) {
             $product->is_configurable = $product->type === 'configurable';
+            $product->featured = (bool) $product->featured;
+            $product->new = (bool) $product->new;
 
             // Handle configurable products - get lowest price among all variants
             if ($product->is_configurable) {
@@ -97,6 +130,23 @@ class CategoryProductController extends Controller
         return response()->json($products);
     }
 
+    #[OA\Get(
+        path: '/api/v1/category',
+        operationId: 'getAiamaailmCategoriesMenu',
+        summary: 'All active categories (for menu)',
+        description: 'Returns all active categories (excluding Root) with parent_id so the frontend can build a hierarchy tree. Filtered to display_mode=products.',
+        tags: ['Aiamaailm Catalog'],
+        responses: [
+            new OA\Response(response: 200, description: 'OK', content: new OA\JsonContent(type: 'array', items: new OA\Items(properties: [
+                new OA\Property(property: 'id', type: 'integer'),
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'slug', type: 'string'),
+                new OA\Property(property: 'url_path', type: 'string'),
+                new OA\Property(property: 'parent_id', type: 'integer'),
+                new OA\Property(property: 'position', type: 'integer'),
+            ]))),
+        ]
+    )]
     public function categories()
     {
         $categories = DB::table('category_translations')

@@ -241,4 +241,39 @@ class CustomerCheckoutController extends Controller
             ],
         ]);
     }
+
+    public function shippingMethods(Request $request): JsonResponse|JsonResource
+    {
+        if ($customer = $request->user()) {
+            Cart::initCart($customer);
+        }
+
+        Cart::collectTotals();
+
+        if (Cart::hasError()) {
+            return (new JsonResource([
+                'message' => Cart::getErrors()['message'] ?? 'Cart has errors',
+            ]))->response()->setStatusCode(Response::HTTP_BAD_REQUEST);
+        }
+
+        if (! Cart::getCart()?->haveStockableItems()) {
+            return new JsonResource([
+                'data' => [
+                    'shipping_rates' => [],
+                ],
+            ]);
+        }
+
+        $rates = Shipping::collectRates();
+
+        if (! $rates) {
+            return (new JsonResource([
+                'message' => 'Unable to collect shipping rates',
+            ]))->response()->setStatusCode(Response::HTTP_BAD_REQUEST);
+        }
+
+        return new JsonResource([
+            'data' => $rates,
+        ]);
+    }
 }

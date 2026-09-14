@@ -21,6 +21,15 @@ class DisableStorefront
             'customer/forgot-password',
             'customer/login',
             'customer/register',
+            'docs',
+            'docs/*',
+            'cms',
+            'cms/*',
+            'livewire/*',
+            'filament/*',
+            'storage/*',
+            'esto/callback',
+            'everypay/callback',
         ];
         
         foreach ($allowedPaths as $path) {
